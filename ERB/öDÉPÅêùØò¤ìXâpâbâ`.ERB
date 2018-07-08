@@ -1,0 +1,265 @@
+
+;妊娠処理変更パッチ======================================
+;新規追加フラグ
+
+;DA:X:Y = Xの子宮内にあるYの総精子量
+;TA:X:Y:Z(0~4) = Xの子宮内にあるYの精子量　Zは振り分け番号
+;TB:X:Y:Z(0~4) = Xの子宮内にあるZ番のYの精子の残り生存日数
+;Yの値、訪問者は300,客は299とする
+
+;CFLAG:350 妊娠処理における妊娠確率の分母、便宜上"子宮内体積"と明記
+
+;TFLAG:220 射精される精子量
+
+;子宮内体積は体型により変化、幼児体型など通常より小さければ子宮内体積も小さくなり、妊娠しやすくなる
+;　長身など体が大きければその逆となる
+;妊娠確率は子宮内の総合精子量/子宮内体積
+;射精される側(体型:普通)が排卵日の時に射精する側の精力が全快状態(1000)で膣内射精を一回行うと20％の確立で妊娠する
+
+
+
+;====================================================
+
+;PREGNASY_S.ERB 出産、成長・ここ～～～～～～～～～～～～～～～～～～
+@子宮内体積設定(ARG)
+;子宮内体積（体型により変化）
+IF TALENT:ARG:100 == -3
+	CFLAG:ARG:子宮内体積 = 1500
+ELSEIF TALENT:ARG:100 == -2
+	CFLAG:ARG:子宮内体積 = 3000
+ELSEIF TALENT:ARG:100 == -1
+	CFLAG:ARG:子宮内体積 = 4000
+ELSEIF TALENT:ARG:100 == 1
+	CFLAG:ARG:子宮内体積 = 6000
+ELSEIF TALENT:ARG:100 == 2
+	CFLAG:ARG:子宮内体積 = 8000
+ELSEIF TALENT:ARG:100 == 3
+	CFLAG:ARG:子宮内体積 = 12000
+;普通
+ELSE
+	CFLAG:ARG:子宮内体積 = 5000
+ENDIF
+
+
+;SOURCE_SHOOT.ERB・NTR.ERB～～～～～～～～～～～～～～～～～～
+@精力取得, ARG
+;処理上、CALL 精子取得 だと既に精力が減少してしまっているのでこっちで取得
+;登録外のキャラもとりあえずこっちで取得
+;ARG 射精したキャラ 998=訪問者
+
+;精子量取得
+;誰か（客）
+IF ARG == 999
+	IF RAND:100 == 1
+		;稀に濃度の濃い奴
+		TFLAG:220 = RAND(1000, 2000)
+	ELSE
+		TFLAG:220 = RAND(1, 200)
+	ENDIF
+;訪問者
+ELSEIF ARG == 998
+	TFLAG:220 = RAND(150, 300)
+ELSE
+	;減少する前の精力の値
+	TFLAG:220 = BASE:ARG:精力
+	;コマンド[挿入子宮口責め]以外は3割減少
+	;TFLAG:50 == 7 特殊COM,挿入子宮口責め
+	SIF TFLAG:50 != 7
+		TIMES TFLAG:220, 0.70
+ENDIF
+
+
+@精子取得, ARG, ARG:1
+;ARG   射精したキャラ 998=訪問者
+;ARG:1 射精されたキャラ
+
+;訪問者での妊娠が OFF になっている場合は除外
+SIF (ARG == 998 || ARG == 999) && !GETBIT(FLAG:ＮＴＲパッチ設定,5)
+	RETURN 0
+
+;客を299,訪問者を300とする
+SIF ARG == 999
+	ARG = 299
+SIF ARG == 998
+	ARG = 300
+
+;子宮内精子量増加（TFLAG:220(精力)の分だけ上昇）
+REPEAT 5
+	;日数が0なら、精子量追加
+	IF TB:(ARG:1):ARG:COUNT == 0
+		TA:(ARG:1):ARG:COUNT += TFLAG:220
+		TRYCALL 精子取得DEBUG, TFLAG:220, TA:(ARG:1):ARG:COUNT, ARG:1, ARG, COUNT
+		BREAK
+	ENDIF
+REND
+
+;AFTERTRA.ERB～～～～～～～～～～～～～～～～～～
+
+@精子処理_生存日数振り分け
+;妊娠判定の前の処理
+;対象
+FOR LOCAL, 0, CHARANUM
+
+	;男(ふたなりは除く)はスキップ
+	SIF TALENT:LOCAL:性別 == 2
+		CONTINUE
+		
+	;相手
+	FOR LOCAL:1, 0, 301
+		;全キャラ回せば次に訪問者と客の振り分けを行うようにする
+		SIF LOCAL:1 == CHARANUM
+			LOCAL:1 = 299
+			
+		LOCAL:2 = 0
+		REPEAT 5
+			;日数フラグが0、精子量が０超なら日数セット
+			IF TB:LOCAL:(LOCAL:1):COUNT == 0 && TA:LOCAL:(LOCAL:1):COUNT > 0
+				TB:LOCAL:(LOCAL:1):COUNT = 3
+			;日数フラグが１、精子量が０超ならリセット
+			ELSEIF TB:LOCAL:(LOCAL:1):COUNT == 1 && TA:LOCAL:(LOCAL:1):COUNT > 0
+				TA:LOCAL:(LOCAL:1):COUNT = 0
+				TB:LOCAL:(LOCAL:1):COUNT = 0
+			;日数フラグが残っており、精子量が０超なら日数フラグ減少＋精子量20％減
+			ELSEIF TB:LOCAL:(LOCAL:1):COUNT > 0 && TA:LOCAL:(LOCAL:1):COUNT > 0
+				TIMES TA:LOCAL:(LOCAL:1):COUNT, 0.80
+				TB:LOCAL:(LOCAL:1):COUNT --
+			ENDIF
+			LOCAL:2 += TA:LOCAL:(LOCAL:1):COUNT
+		REND
+		;現在の総精子量のセット
+		DA:LOCAL:(LOCAL:1) = LOCAL:2
+		TRYCALL 精子処理DEBUG2, LOCAL, LOCAL:1, LOCAL:2
+		
+	NEXT
+	
+NEXT
+
+;受精関連（此処3つで一つ）-------------------------------
+@妊娠処理変更パッチ
+;LOCAL 対象１(MASTERとキャラ)
+;LOCAL:1 対象２(MASTERときキャラと訪問者と客)
+;LOCAL:2 対象１の子宮内の総合精子量
+;LOCAL:3 対象１の子宮内の精子の種類数
+
+;対象１のチェック
+FOR LOCAL, 0, CHARANUM
+	;男(ふたなりは除く)はスキップ
+	SIF TALENT:LOCAL:性別 == 2
+		CONTINUE
+	;排卵日のみ
+	SIF CFLAG:LOCAL:卵子生存日数 != 1
+		CONTINUE
+	;ピル使用中ならスキップ
+	SIF CFLAG:LOCAL:ピル使用 == 3
+		CONTINUE
+		
+	LOCAL:2 = 0
+	LOCAL:3 = 0
+	;何種の精子が子宮内に有るかチェック
+	FOR LOCAL:1, 0, 301
+		;全キャラ回せば(ry
+		SIF LOCAL:1 == CHARANUM
+			LOCAL:1 = 299
+		;子宮内に対象２(LOCAL:1)の精子が有るか？
+		IF DA:LOCAL:(LOCAL:1) > 0
+			;有ればLOCAL:2に加算、種類数＋１
+			LOCAL:2 += DA:LOCAL:(LOCAL:1)
+			LOCAL:3 ++
+		ENDIF
+	NEXT
+	
+	TRYCALL 妊娠処理変更パッチDEBUG, LOCAL, LOCAL:3
+	
+	;1種でも精子が有るならチェックへ
+	SIF LOCAL:3 > 0
+		CALL 受精チェック, LOCAL, LOCAL:2, LOCAL:3
+NEXT
+
+@受精チェック, ARG, ARG:1, ARG:2
+;中出しされた精子量に応じて確率処理
+;ARG 対象
+;ARG:1 子宮内の総合精子量
+;ARG:2 何種類の精子が存在するか
+
+;妊娠するかの判定
+LOCAL:1 = RAND:(CFLAG:ARG:350)
+TRYCALL 受精チェックDEBUG, ARG:1, LOCAL:1
+;誰かの精子が当たっていれば誰の子か判定
+IF LOCAL:1 <= ARG:1
+	CALL 誰の子, ARG, ARG:1, LOCAL:1, ARG:2
+ENDIF
+
+
+@誰の子, ARG, ARG:1, ARG:2, ARG:3
+;ARG 対象
+;ARG:1 子宮内の総合精子量
+;ARG:2 子宮内の１つの精子番号(当たり番号)
+;ARG:3 何種類の精子が存在するか
+		
+LOCAL:1 = 0
+;対象２のチェック
+FOR LOCAL, 0, 301
+	;全キャラ回せば(ry
+	SIF LOCAL == CHARANUM
+		LOCAL = 299
+	
+	;対象２の精子がなければ次へ
+	SIF DA:ARG:LOCAL <= 0
+		CONTINUE
+		
+	;精子量追加（前回のLOCAL:1の数値～今回のLOCAL:1の数値-1までが現在の対象２の持ち番号）
+	LOCAL:1 += DA:ARG:LOCAL
+	
+	TRYCALL 精子量追加DEBUG, ARG, LOCAL, LOCAL:1, ARG:2
+	
+	;持ち番号にARG:2の番号があるか
+	IF (LOCAL:1 - 1) >= ARG:2
+		;有れば対象２の子を孕む
+		;訪問者
+		IF LOCAL == 300
+			;妊娠フラグ
+			CFLAG:ARG:にんっしんっ = 999
+		;誰か
+		ELSEIF LOCAL == 299
+			CFLAG:ARG:にんっしんっ = 1000
+		ELSE
+			CFLAG:ARG:にんっしんっ = LOCAL+1
+		ENDIF
+		BREAK
+	ENDIF
+NEXT
+
+;複数人の精子が有るなら誰の子か分からなくする
+;@PREGNACY_S_BIRTHで-1000
+SIF ARG:3 > 1
+	CFLAG:ARG:にんっしんっ += 1000
+
+;妊娠が確定したのでいらないフラグをリセット
+CFLAG:ARG:卵子生存日数 = 0
+CFLAG:ARG:生理周期 = 0
+TALENT:ARG:危険日 = 0
+
+;PRINT_STATE.ERB～～～～～～～～～～～～～～～～～
+;対象の子宮内の精子総量表示(予定)
+
+
+;子供の成長状態表示
+@子供の成長状態(ARG)
+#FUNCTIONS
+
+SELECTCASE CFLAG:ARG:成長度
+	CASE 1
+		RETURNF "<赤子>"
+	CASE 2
+		IF NO:ARG == 148
+			RETURNF "<幼児>"
+		ELSE
+			RETURNF "<幼女>"
+		ENDIF
+	CASE 3
+		RETURNF "<成長期>"
+	CASEELSE
+		RETURNF ""
+ENDSELECT
+
+

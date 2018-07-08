@@ -1,0 +1,37 @@
+;-------------------------------------------------------------------------------
+;‰Ÿ‚µ“|‚·
+@COM350
+	;‰Ÿ‚µ“|‚·
+	FOR LOCAL,1,CHARANUM
+		SIF TARGET:LOCAL <= 0
+			CONTINUE
+		CFLAG:(TARGET:LOCAL):‚¤‚Ó‚Ó = 1
+		IF TALENT:(TARGET:LOCAL):ŒöO•ÖŠ && FLAG:’å‘€‘ÑŒ®w“üƒtƒ‰ƒO == TARGET:LOCAL
+			;ŒöO•ÖŠ‘ŠŽè‚ÉŒ®‚ð”ƒ‚Á‚Ä‚¢‚½ê‡
+			IF CFLAG:(TARGET:LOCAL):NTR’å‘€‘Ñ”½‰ž
+				;ŒöO•ÖŠŽ©g‚ª’å‘€‘Ñ‚ÌŒ®‚ð”FŽ¯‚µ‚Ä‚¢‚È‚¢ê‡
+				IF TCVAR:(TARGET:LOCAL):“é‚ê‡‚¢‹­“x < 2
+					;ŒöO•ÖŠ‚ª‚»‚Ì‹C‚É‚È‚Á‚Ä‚È‚¢‚Ì‚É‰Ÿ‚µ“|‚µ‚½ê‡
+					PRINTFORML %CALLNAME:TARGET%‚ÍŽv‚í‚¸%CALLNAME:MASTER%‚ð‰Ÿ‚µ•Ô‚»‚¤‚Æ‚µ‚½‚ªA
+					PRINTFORMW ’å‘€‘Ñ‚ÌŒ®‚ð‚¿‚ç‚Â‚©‚¹‚Ä‚â‚é‚ÆAg‘Ì‚Ì—Í‚ð”²‚¢‚Ä%CALLNAME:MASTER%‚ðŽó‚¯“ü‚ê‚½B
+				ELSE
+					;ŒöO•ÖŠ‚ª‚»‚Ì‹C‚É‚È‚Á‚Ä‚éŽž‚É‰Ÿ‚µ“|‚µ‚½ê‡
+					PRINTFORML %CALLNAME:TARGET%‚Í’å‘€‘Ñ‚ÉG‚êA%CALLNAME:MASTER%‚Í‚¢‚ÂŽ„‚ð”ƒ‚Á‚Ä‚­‚ê‚é‚Ì‚©A‚Æu‚Ë‚½B
+					PRINTFORMW ”ƒ‚Á‚½‚Î‚©‚è‚ÌŒ®‚ðŒ©‚¹‚Ä‚â‚é‚ÆA%CALLNAME:TARGET%‚Í‚»‚Ì‹r‚ðŠJ‚¢‚ÄŒ®ŒŠ‚ðŽw‚³‚µ‚½B
+				ENDIF
+				CALL NTR_LOCK_REACTION(TARGET)
+			ELSE
+				;ŒöO•ÖŠŽ©g‚ª’å‘€‘Ñ‚ÌŒ®‚ð”FŽ¯‚µ‚Ä‚¢‚éê‡
+				IF TCVAR:(TARGET:LOCAL):“é‚ê‡‚¢‹­“x < 2
+					;ŒöO•ÖŠ‚ª‚»‚Ì‹C‚É‚È‚Á‚Ä‚È‚¢‚Ì‚É‰Ÿ‚µ“|‚µ‚½ê‡
+					PRINTFORMW %CALLNAME:TARGET%‚Í‚í‚¸‚©‚É’ïR‚·‚é—lŽq‚ðŒ©‚¹‚½‚ªA‚·‚®‚Ég‘Ì‚Ì—Í‚ð”²‚¢‚Ä%CALLNAME:MASTER%‚ðŽó‚¯“ü‚ê‚½B
+				ELSE
+					;ŒöO•ÖŠ‚ª‚»‚Ì‹C‚É‚È‚Á‚Ä‚éŽž‚É‰Ÿ‚µ“|‚µ‚½ê‡
+					PRINTFORMW %CALLNAME:TARGET%‚ÍA%CALLNAME:MASTER%‚Ì‘O‚É’å‘€‘Ñ‚ðŽN‚µA‘‚­Œ®‚ðŠJ‚¯‚Ä‚­‚ê‚Æ‚Ë‚¾‚Á‚½B
+				ENDIF
+			ENDIF
+		ENDIF
+	NEXT
+	CFLAG:MASTER:‚¤‚Ó‚Ó = 1
+	TIME += 5
+RETURN 1

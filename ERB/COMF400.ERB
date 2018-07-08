@@ -1,0 +1,1194 @@
+;-------------------------------------------------
+;移動
+;-------------------------------------------------
+@COM400
+
+CALL TURN_RESET
+;遠距離移動中の処理
+IF TFLAG:195
+	IF TFLAG:195 == CFLAG:MASTER:現在位置
+		NEXTCOM = -1
+		TFLAG:195 = 0
+		RETURN 0
+	ENDIF
+	;キャラの位置更新(NEXTCOM設定中は@SHOW_STATUSが走らないのでこっちで処理)
+	CALL CHARA_MOVEMENT
+	TFLAG:300 = TIME + 1440 * DAY
+	;キャラをCFLAG:310の昇順に並び替え
+	VARSET TARGET
+	CALL SORT_CFLAG(310)
+	LOCAL:1 = 0
+	CALL NTR_CHK_GOWITH(10)
+	FOR LOCAL,1,CHARANUM
+		SIF CFLAG:MASTER:現在位置 != CFLAG:(RESULT:LOCAL):現在位置
+			CONTINUE
+		LOCAL:1 ++
+		TARGET:(LOCAL:1) = RESULT:LOCAL
+	NEXT
+	
+	LOCAL:2 = 0
+	;誰かいないかチェック
+	FOR LOCAL,1,CHARANUM
+		SIF TARGET:LOCAL <= 0
+			CONTINUE
+		SIF CFLAG:(TARGET:LOCAL):同行
+			CONTINUE
+		LOCAL:2 = TARGET:LOCAL
+	NEXT
+	IF LOCAL:2
+		PRINTFORM %GETPLACENAME(CFLAG:MASTER:現在位置)%で%CALLNAME:(LOCAL:2)%と出会った
+		IF STRLENS(CSTR:MASTER:12) && RAND:2 && !CFLAG:(LOCAL:2):睡眠
+			PRINTL 
+			PRINTFORMW %CALLNAME:(LOCAL:2)%に見とがめられ身体検査をされた…
+			PRINTFORMW 
+			PRINTFORMW 
+			PRINTFORMW 
+			PRINTFORMW 収集品を没収された
+			SIF GETBIT (CFLAG:(LOCAL:2):MASTERの弱味,0)
+				PRINTFORMW %CALLNAME:(LOCAL:2)%に弱みを握られた
+			CALL KOJO_EVENT(11, LOCAL:2, 0)
+			SETBIT CFLAG:(LOCAL:2):MASTERの弱味 ,0
+			CSTR:MASTER:12 =
+			NEXTCOM = -1
+			RETURN 0
+		ELSEIF FLAG:貞操帯鍵購入フラグ && RAND:2 && CFLAG:TARGET:NTR貞操帯反応
+			PRINTL 
+			PRINTFORMW %CALLNAME:TARGET%に見とがめられ身体検査をされた…
+			PRINTFORMW 
+			PRINTFORMW 
+			PRINTFORMW 
+			PRINTFORMW 貞操帯の鍵を発見された。
+			CALL NTR_LOCK_REACTION(TARGET)
+		ELSE
+			PRINTL ……　どうしますか？
+			PRINTL [0] そのまま移動する
+			PRINTL [1] 立ち止まる
+			INPUT
+			
+			IF RESULT == 0
+			;無視する場合
+			;何もしないでいいかな…無視されて怒らせる？
+				IF CFLAG:(LOCAL:2):現在位置 == FLAG:訪問者の現在位置 && FLAG:訪問者のムード != 0
+					PRINTFORMW %CALLNAME:(LOCAL:2)%は誰かと隠れるように何かしていたようだ
+				ELSEIF CFLAG:(LOCAL:2):現在位置 == FLAG:訪問者の現在位置
+					PRINTFORMW %CALLNAME:(LOCAL:2)%は誰かと話していたようだ
+				ELSE
+					CALL KOJO_EVENT(10, LOCAL:2, 0)
+				ENDIF
+			ELSE
+			;実際は0以外全部立ち止まる扱い
+				IF CFLAG:(LOCAL:2):現在位置 == FLAG:訪問者の現在位置 && FLAG:訪問者のムード != 0
+					IF IS_AIR_MASTER(LOCAL:2) < FLAG:訪問者のムード
+						PRINTFORMW %CALLNAME:(LOCAL:2)%は誰かと隠れるように何かしていたようだが、%CALLNAME:MASTER%が来て中断したようだ
+						CALL NTR_RESET_VISITOR_ACTION(LOCAL:2)
+					ENDIF
+				ELSEIF CFLAG:(LOCAL:2):現在位置 == FLAG:訪問者の現在位置
+					PRINTFORMW %CALLNAME:(LOCAL:2)%は誰かと話していたようだ
+					CALL NTR_RESET_VISITOR_ACTION(LOCAL:2)
+				ELSE
+					CALL KOJO_EVENT(10, LOCAL:2, 1)
+				ENDIF
+				NEXTCOM = -1
+				RETURN 0
+			ENDIF
+		ENDIF
+	ENDIF
+		LOCAL:1 = IN_ROOM("MIN", 18, "CFLAG", 6)
+	;遠距離移動
+	IF CAN_MOVE(CFLAG:MASTER:現在位置, TFLAG:195)
+		IF TFLAG:195 != 15 && FLAG:(300 + TFLAG:195) && !HAS_DUPLICATE_KEY(TFLAG:195)
+			;あなた以外の私室 and 合鍵無し
+			PRINTW 内側から鍵が掛けられている…
+			;遠距離移動フラグ消去
+			NEXTCOM = -1
+			RETURN 0
+		;それ以外の場所
+		ELSE
+			;あなたの現在位置に移動先を代入
+			CFLAG:MASTER:現在位置 = (TFLAG:195)
+			;部屋が施錠されている and 施錠されている部屋の合鍵を持っている
+			IF FLAG:(300 + TFLAG:195)
+				;施錠されている
+				IF TFLAG:195 == 15
+					;あなた私室はいつでも開けられる
+					PRINTFORML %"内側から鍵が掛けられている……"+CALLNAME:MASTER+"は鍵を開けて入った"%
+				ELSEIF HAS_DUPLICATE_KEY(TFLAG:195)
+					;合鍵があれば開けられる
+					PRINTFORML %"内側から鍵が掛けられている……"+CALLNAME:MASTER+"は合鍵を使って入った"%
+				ENDIF
+			ENDIF
+			PRINTFORML 
+			FOR LOCAL, 1, CHARANUM
+				;ターゲットと訪問者が一緒 and 訪問者のムードが会話以外(キス以上) and あなたとターゲットが一緒
+				IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置 && FLAG:訪問者のムード != 0 && CFLAG:MASTER:現在位置 == CFLAG:LOCAL:現在位置
+					;性交以外
+					IF 1 <= FLAG:訪問者との行為 && FLAG:訪問者との行為 <= 6
+						PRINTFORML 【%GETPLACENAME(FLAG:21)%】で%CALLNAME:LOCAL%は%NTR_NAME(0)%と何かしていたようだが、%CALLNAME:MASTER%が来て中断したようだ
+						PRINTFORML %CALLNAME:LOCAL%の顔が若干赤い気がする
+						PRINTFORMW 
+						CALL NTR_RESET_VISITOR_ACTION(LOCAL)
+					;性交時 and (1/3 or 空気度が4以上 or 性交時の覗きバレ)
+					ELSEIF 7 <= FLAG:訪問者との行為 && FLAG:訪問者との行為 <= 13 && (RAND:3 == 0 || IS_AIR_MASTER(LOCAL) >= 4 || (CFLAG:LOCAL:覗き発覚回数 > 0 && CFLAG:LOCAL:覗き発覚時行為 >= 7))
+						TRYCALLFORM NTR_INFIDELITY(LOCAL)
+					;性交時
+					ELSEIF 7 <= FLAG:訪問者との行為 && FLAG:訪問者との行為 <= 13
+						PRINTFORML 【%GETPLACENAME(FLAG:21)%】で%CALLNAME:LOCAL%は%NTR_NAME(0)%と何かしていたようだが近づいてくる%CALLNAME:MASTER%に気づき、慌てて行為を中断したようだ
+						PRINTFORML %CALLNAME:LOCAL%の顔が若干赤く衣服が乱れている
+						PRINTFORMW 
+						CALL NTR_RESET_VISITOR_ACTION(LOCAL)
+					ENDIF
+				;ターゲットと訪問者が一緒 and あなたとターゲットが一緒
+				ELSEIF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置 && CFLAG:MASTER:現在位置 == CFLAG:LOCAL:現在位置
+					PRINTFORMW %CALLNAME:LOCAL%は誰かと話していたようだ
+					CALL NTR_RESET_VISITOR_ACTION(LOCAL)
+				;あなたとターゲットが一緒 and 睡眠中
+				ELSEIF CFLAG:MASTER:現在位置 == CFLAG:LOCAL:現在位置 && CFLAG:LOCAL:睡眠
+					PRINTFORMW %CALLNAME:LOCAL%は眠っている
+					CALL KOJO_EVENT(7,LOCAL,2)
+				ENDIF
+			NEXT
+			;遠距離移動フラグ消去
+			NEXTCOM = -1
+		ENDIF
+		FOR LOCAL,1,CHARANUM
+			SIF CFLAG:LOCAL:同行
+				CFLAG:LOCAL:現在位置 = CFLAG:MASTER:現在位置
+		NEXT
+	ELSE
+		CALL FARMOVE(TFLAG:195)
+		;現在位置を更新し、次も移動の扱いにする
+		CFLAG:MASTER:現在位置 = RESULT
+		NEXTCOM = 400
+	ENDIF
+	TIME += 3
+	RETURN 0
+ENDIF
+
+
+IF CFLAG:MASTER:現在位置 <= 19
+
+PRINT ■■■■■■■■■■■■■■■■■　　　
+PRINTBUTTON "１：正門",1
+PRINT 　　　　
+PRINTBUTTON "11：燐私室",11
+PRINTL
+PRINT ■　
+CALL GETMAP(17)
+PRINT 　　　　　
+CALL GETMAP(16)
+PRINT 　　　　　
+CALL GETMAP(19)
+PRINT 　■　　　
+PRINTBUTTON "２：広間",2
+PRINT 　　　　
+PRINTBUTTON "12：こいし私室",12
+PRINT 　　　
+PRINTL
+PRINT ■　　■■■■　　　■■■■　　■　　　
+PRINTBUTTON "３：中央廊下",3
+PRINT 　　
+PRINTBUTTON "13：さとり私室",13
+PRINTL
+PRINT ■　　■　　　　
+CALL GETMAP(3)
+PRINT 　
+CALL GETMAP(6)
+PRINT 　
+CALL GETMAP(7)
+PRINT ■　　■　　　
+PRINTBUTTON "４：西廊下",4
+PRINT 　　
+PRINTBUTTON "14：書室",14
+PRINTL
+PRINT ■　■■
+CALL GETMAP(15)
+PRINT 　■■　■■■■■■　■　　　
+PRINTBUTTON "５：東廊下",5
+PRINT 　　
+PRINTBUTTON "15：浴室",15
+PRINTL
+PRINT ■　■■■■■■　■■
+CALL GETMAP(14)
+PRINT 　
+CALL GETMAP(13)
+PRINT ■　■　　　
+PRINTBUTTON "６：食堂",6
+PRINT 　　　　
+PRINTBUTTON "16：庭",16
+PRINTL
+PRINT ■　■
+CALL GETMAP(8)
+PRINT ■
+CALL GETMAP(9)
+PRINT ■　　　■■
+CALL GETMAP(5)
+PRINT ■■　■　　　
+PRINTBUTTON "７：厨房",7
+PRINT 　　　　
+PRINTBUTTON "17：物置",17
+PRINTL
+PRINT ■　■　
+CALL GETMAP(4)
+PRINT 　　　
+CALL GETMAP(2)
+PRINT 　　　　
+CALL GETMAP(12)
+PRINT ■　■　　　
+PRINTBUTTON "８：自室",8
+PRINT 　　　　
+PRINTBUTTON "18：屋内トイレ",18
+PRINTL
+PRINT ■　■
+CALL GETMAP(10)
+PRINT ■
+CALL GETMAP(11)
+PRINT ■　　　■■
+CALL GETMAP(18)
+PRINT ■■　■　　
+PRINTBUTTON "９：ゾンビ部屋",9
+PRINT 　　
+PRINTBUTTON "19：屋外トイレ",19
+PRINTL
+PRINT ■　■■■■■■　■■■■■■　■　　　
+PRINTBUTTON "10：空私室",10
+PRINT 　　　
+PRINTBUTTON "20:旧地獄街道",20
+PRINTL
+PRINT ■　　　　　　　　　　　　　　　■
+PRINTL
+PRINT ■■■■■■■■
+CALL GETMAP(1)
+PRINT ■■■■■■■■
+PRINTL
+PRINTL
+PRINT 　　　　　　　　
+CALL GETMAP(20)
+PRINTL
+
+ENDIF
+
+IF CFLAG:MASTER:現在位置 >= 20 && CFLAG:MASTER:現在位置 <= 28
+
+PRINT ■　　　　　　　　　　　　　　　■　　　
+PRINTBUTTON "20：旧地獄街道",20
+PRINTL
+PRINT ■■■■■■■■
+CALL GETMAP(1)
+PRINT ■■■■■■■■　　　
+PRINTBUTTON "21：公衆トイレ",21
+PRINTL
+PRINT 　　　　　　　　　　　　　　　　　　　　
+PRINTBUTTON "22：銭湯",22
+PRINTL
+PRINT 　　　　　　　　　　　　　　　　　　　　
+PRINTBUTTON "23：風穴の底",23
+PRINTL
+PRINT 　　　■■　　　　　　　■■　　　　　　
+PRINTBUTTON "30：勇儀宅",30
+PRINTL
+PRINT 　　　■
+CALL GETMAP(30)
+PRINT 　　　　　　　
+CALL GETMAP(50)
+PRINT ■　　　　　　
+PRINTBUTTON "40：パルスィ宅",40
+PRINTL
+PRINT 　　　■■　　　　　　　■■　　　　　　
+PRINTBUTTON "50：ヤマメ宅",50
+PRINTL
+PRINT 　　　■
+CALL GETMAP(40)
+PRINT 　　　　　　　
+CALL GETMAP(60)
+PRINT ■　　　　　　
+PRINTBUTTON "60：キスメ宅",60
+PRINTL
+PRINT 　　　■■　　　　　　　■■　　　　　　
+PRINTBUTTON "70：空き家",28
+PRINTL
+PRINT 　　　　　　　　
+CALL GETMAP(20)
+PRINTL
+PRINT 　　　■■　　　　　　　■■
+PRINTL
+PRINT 　　　■
+CALL GETMAP(70)
+PRINT 　　　　　　　
+CALL GETMAP(21)
+PRINT ■
+PRINTL
+PRINT 　　　■■　　　　　　　■■
+PRINTL
+PRINT 　　　　　　　　　　　　
+CALL GETMAP(22)
+PRINT ■
+PRINTL
+PRINT 　　　　　　　　　　　　■■
+PRINTL
+PRINTL
+PRINT 　　　　　　■　　　■
+PRINTL
+PRINT 　　　　　　　■
+CALL GETMAP(23)
+PRINT ■
+PRINTL
+
+ENDIF
+
+IF CFLAG:MASTER:現在位置 >= 30 && CFLAG:MASTER:現在位置 <= 37
+
+PRINT ■■■■■■■　　　　　
+PRINTBUTTON "30：玄関",30
+PRINTL
+PRINT ■　　
+CALL GETMAP(36)
+PRINT 　　■　　　　　
+PRINTBUTTON "31：廊下",31
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "32：リビング",32
+PRINTL
+PRINT ■　　　　　■　　　　　
+PRINTBUTTON "33：部屋",33
+PRINTL
+PRINT ■
+CALL GETMAP(32)
+PRINT 　　■
+CALL GETMAP(34)
+PRINT ■　　　　　
+PRINTBUTTON "34：キッチン",34
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "35：浴室",35
+PRINTL
+PRINT ■　■
+CALL GETMAP(31)
+PRINT 　
+CALL GETMAP(35)
+PRINT ■　　　　　
+PRINTBUTTON "36：庭",36
+PRINTL
+PRINT ■
+CALL GETMAP(33)
+PRINT 　　■■■　　　　　
+PRINTBUTTON "37：トイレ",37
+PRINTL
+PRINT ■　■　　
+CALL GETMAP(37)
+PRINT ■　　　　　
+PRINTBUTTON "20：旧地獄街道",20
+PRINTL
+PRINT ■■■
+CALL GETMAP(30)
+PRINT ■■■
+PRINTL
+PRINTL
+PRINT 　　　
+CALL GETMAP(20)
+PRINTL
+ENDIF
+
+IF CFLAG:MASTER:現在位置 >= 40 && CFLAG:MASTER:現在位置 <= 47
+
+PRINT ■■■■■■■　　　　　
+PRINTBUTTON "40：玄関",40
+PRINTL
+PRINT ■　　
+CALL GETMAP(46)
+PRINT 　　■　　　　　
+PRINTBUTTON "41：廊下",41
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "42：リビング",42
+PRINTL
+PRINT ■　　　　　■　　　　　
+PRINTBUTTON "43：寝室",43
+PRINTL
+PRINT ■
+CALL GETMAP(42)
+PRINT 　　■
+CALL GETMAP(44)
+PRINT ■　　　　　
+PRINTBUTTON "44：キッチン",44
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "45：浴室",45
+PRINTL
+PRINT ■　■
+CALL GETMAP(41)
+PRINT 　
+CALL GETMAP(45)
+PRINT ■　　　　　
+PRINTBUTTON "46：庭",46
+PRINTL
+PRINT ■
+CALL GETMAP(43)
+PRINT 　　■■■　　　　　
+PRINTBUTTON "47：トイレ",47
+PRINTL
+PRINT ■　■　　
+CALL GETMAP(47)
+PRINT ■　　　　　
+PRINTBUTTON "20：旧地獄街道",20
+PRINTL
+PRINT ■■■
+CALL GETMAP(40)
+PRINT ■■■
+PRINTL
+PRINTL
+PRINT 　　　
+CALL GETMAP(20)
+PRINTL
+ENDIF
+
+IF CFLAG:MASTER:現在位置 >= 50 && CFLAG:MASTER:現在位置 <= 57
+
+PRINT ■■■■■■■　　　　　
+PRINTBUTTON "50：玄関",50
+PRINTL
+PRINT ■　　
+CALL GETMAP(56)
+PRINT 　　■　　　　　
+PRINTBUTTON "51：廊下",51
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "52：リビング",52
+PRINTL
+PRINT ■　　　　　■　　　　　
+PRINTBUTTON "53：寝室",53
+PRINTL
+PRINT ■
+CALL GETMAP(52)
+PRINT 　　■
+CALL GETMAP(54)
+PRINT ■　　　　　
+PRINTBUTTON "54：キッチン",54
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "55：浴室",55
+PRINTL
+PRINT ■　■
+CALL GETMAP(51)
+PRINT 　
+CALL GETMAP(55)
+PRINT ■　　　　　
+PRINTBUTTON "56：庭",56
+PRINTL
+PRINT ■
+CALL GETMAP(53)
+PRINT 　　■■■　　　　　
+PRINTBUTTON "57：トイレ",57
+PRINTL
+PRINT ■　■　　
+CALL GETMAP(57)
+PRINT ■　　　　　
+PRINTBUTTON "20：旧地獄街道",20
+PRINTL
+PRINT ■■■
+CALL GETMAP(50)
+PRINT ■■■
+PRINTL
+PRINTL
+PRINT 　　　
+CALL GETMAP(20)
+PRINTL
+ENDIF
+
+IF CFLAG:MASTER:現在位置 >= 60 && CFLAG:MASTER:現在位置 <= 67
+
+PRINT ■■■■■■■　　　　　
+PRINTBUTTON "60：玄関",60
+PRINTL
+PRINT ■　　
+CALL GETMAP(66)
+PRINT 　　■　　　　　
+PRINTBUTTON "61：廊下",61
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "62：リビング",62
+PRINTL
+PRINT ■　　　　　■　　　　　
+PRINTBUTTON "63：寝室",63
+PRINTL
+PRINT ■
+CALL GETMAP(62)
+PRINT 　　■
+CALL GETMAP(64)
+PRINT ■　　　　　
+PRINTBUTTON "64：キッチン",64
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "65：浴室",65
+PRINTL
+PRINT ■　■
+CALL GETMAP(61)
+PRINT 　
+CALL GETMAP(65)
+PRINT ■　　　　　
+PRINTBUTTON "66：庭",66
+PRINTL
+PRINT ■
+CALL GETMAP(63)
+PRINT 　　■■■　　　　　
+PRINTBUTTON "67：トイレ",67
+PRINTL
+PRINT ■　■　　
+CALL GETMAP(67)
+PRINT ■　　　　　
+PRINTBUTTON "20：旧地獄街道",20
+PRINTL
+PRINT ■■■
+CALL GETMAP(60)
+PRINT ■■■
+PRINTL
+PRINTL
+PRINT 　　　
+CALL GETMAP(20)
+PRINTL
+ENDIF
+
+IF CFLAG:MASTER:現在位置 >= 70 && CFLAG:MASTER:現在位置 <= 77
+
+PRINT ■■■■■■■　　　　　
+PRINTBUTTON "70：玄関",70
+PRINTL
+PRINT ■　　
+CALL GETMAP(76)
+PRINT 　　■　　　　　
+PRINTBUTTON "71：廊下",71
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "72：リビング",72
+PRINTL
+PRINT ■　　　　　■　　　　　
+PRINTBUTTON "73：寝室",73
+PRINTL
+PRINT ■
+CALL GETMAP(72)
+PRINT 　　■
+CALL GETMAP(74)
+PRINT ■　　　　　
+PRINTBUTTON "74：キッチン",74
+PRINTL
+PRINT ■■■　■■■　　　　　
+PRINTBUTTON "75：浴室",75
+PRINTL
+PRINT ■　■
+CALL GETMAP(71)
+PRINT 　
+CALL GETMAP(75)
+PRINT ■　　　　　
+PRINTBUTTON "76：庭",76
+PRINTL
+PRINT ■
+CALL GETMAP(73)
+PRINT 　　■■■　　　　　
+PRINTBUTTON "77：トイレ",77
+PRINTL
+PRINT ■　■　　
+CALL GETMAP(77)
+PRINT ■　　　　　
+PRINTBUTTON "20：旧地獄街道",20
+PRINTL
+PRINT ■■■
+CALL GETMAP(70)
+PRINT ■■■
+PRINTL
+PRINTL
+PRINT 　　　
+CALL GETMAP(20)
+PRINTL
+ENDIF
+
+
+PRINTFORML 現在{CFLAG:MASTER:現在位置}:%GETPLACENAME(CFLAG:MASTER:現在位置)%にいます
+SIF !CAN_MOVE(CFLAG:MASTER:現在位置, CFLAG:MASTER:開始位置) && CFLAG:MASTER:現在位置 != CFLAG:MASTER:開始位置
+PRINTL [0] - 私室へ戻る
+FOR LOCAL,0,81
+	SIF CAN_MOVE(CFLAG:MASTER:現在位置, LOCAL)
+		PRINTFORML [{LOCAL}] - %GETPLACENAME(LOCAL)%
+NEXT
+PRINT [100] - 戻る
+$INPUT_LOOP
+INPUTS
+SIF RESULTS == ""
+	GOTO INPUT_LOOP
+RESULT = TOINT(RESULTS) - (TOINT(RESULTS) == 0 && RESULTS != "0")
+IF RESULT == -1
+	REPLACE RESULTS, CALLNAME:MASTER, "%CALLNAME:MASTER%"
+	FOR LOCAL, 1, 18
+		SIF GETPLACENAME(LOCAL) == RESULTS
+			RESULT = LOCAL
+	NEXT
+ENDIF
+
+IF RESULT == 0
+	;直接ワープで戻るのはよくないので置換
+	RESULT = CFLAG:MASTER:開始位置
+ENDIF
+
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 0
+	;どうしようもなければワープで戻る
+	CFLAG:MASTER:現在位置 = CFLAG:MASTER:開始位置
+ELSEIF RESULT < 0 || ( RESULT > 23 && RESULT <30) || (RESULT > 37 && RESULT <40) || (RESULT > 47 && RESULT <50) || (RESULT > 57 && RESULT <60) || (RESULT > 67 && RESULT <70) || RESULT >77
+	CLEARLINE 1
+	REUSELASTLINE 
+	GOTO INPUT_LOOP
+;移動先が隣の場所
+ELSEIF CAN_MOVE(CFLAG:MASTER:現在位置, RESULT)
+	;MASTER自室は常に入れる
+	IF RESULT == 15
+		FLAG:(300 + 15) = 0
+	ENDIF
+	;各私室 and 合鍵無し
+	IF FLAG:(300 + RESULT) && !HAS_DUPLICATE_KEY(RESULT)
+		PRINTW 内側から鍵が掛けられている…
+		RESTART
+	;それ以外の場所
+	ELSE
+		CFLAG:MASTER:現在位置 = RESULT
+		;部屋が施錠されている and 施錠されている部屋の合鍵を持っている
+		SIF FLAG:(300 + RESULT) && HAS_DUPLICATE_KEY(RESULT)
+			PRINTFORML 合鍵を使って入った
+		PRINTFORML 
+			FOR LOCAL, 1, CHARANUM
+				;ターゲットと訪問者が一緒 and 訪問者のムードが会話以外(キス以上) and あなたとターゲットが一緒
+				IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置 && FLAG:訪問者のムード != 0 && CFLAG:MASTER:現在位置 == CFLAG:LOCAL:現在位置
+					;性交以外
+					IF 1 <= FLAG:訪問者との行為 && FLAG:訪問者との行為 <= 6
+						PRINTFORML 【%GETPLACENAME(FLAG:21)%】で%CALLNAME:LOCAL%は%NTR_NAME(0)%と何かしていたようだが、%CALLNAME:MASTER%が来て中断したようだ
+						PRINTFORML %CALLNAME:LOCAL%の顔が若干赤い気がする
+						PRINTFORMW 
+						CALL NTR_RESET_VISITOR_ACTION(LOCAL)
+					;性交時 and (1/3 or 空気度が4以上 or 性交時の覗きバレ)
+					ELSEIF 7 <= FLAG:訪問者との行為 && FLAG:訪問者との行為 <= 13 && (RAND:3 == 0 || IS_AIR_MASTER(LOCAL) >= 4 || (CFLAG:LOCAL:覗き発覚回数 > 0 && CFLAG:LOCAL:覗き発覚時行為 >= 7))
+						TRYCALLFORM NTR_INFIDELITY(LOCAL)
+					;性交時
+					ELSEIF 7 <= FLAG:訪問者との行為 && FLAG:訪問者との行為 <= 13
+						PRINTFORML 【%GETPLACENAME(FLAG:21)%】で%CALLNAME:LOCAL%は%NTR_NAME(0)%と何かしていたようだが近づいてくる%CALLNAME:MASTER%に気づき、慌てて行為を中断したようだ
+						PRINTFORML %CALLNAME:LOCAL%の顔が若干赤く衣服が乱れている
+						PRINTFORMW 
+						CALL NTR_RESET_VISITOR_ACTION(LOCAL)
+					ENDIF
+				;ターゲットと訪問者が一緒 and あなたとターゲットが一緒
+				ELSEIF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置 && CFLAG:MASTER:現在位置 == CFLAG:LOCAL:現在位置
+					PRINTFORMW %CALLNAME:LOCAL%は誰かと話していたようだ
+					CALL NTR_RESET_VISITOR_ACTION(LOCAL)
+				;あなたとターゲットが一緒 and 睡眠中
+				ELSEIF CFLAG:MASTER:現在位置 == CFLAG:LOCAL:現在位置 && CFLAG:LOCAL:睡眠
+					PRINTFORMW %CALLNAME:LOCAL%は眠っている
+					CALL KOJO_EVENT(7,LOCAL,2)
+				ENDIF
+			NEXT
+	ENDIF
+	CALL NTR_CHK_GOWITH(10)
+ELSE
+	;目的地が離れているので、最終目的地として設定
+	TFLAG:195 = RESULT
+	CALL FARMOVE(RESULT)
+	;現在位置を更新し、次も移動の扱いにする
+	CFLAG:MASTER:現在位置 = RESULT
+	NEXTCOM = 400
+ENDIF
+TIME += 3
+PREVCOM = 400
+STR:0 = 移動
+
+RETURN 0
+
+@GETMAP(ARG)
+FOR LOCAL ,1,CHARANUM
+	IF TALENT:LOCAL:恋慕 && CFLAG:LOCAL:現在位置 == ARG 
+		SETCOLOR 255 , 150, 150
+	ENDIF
+NEXT
+SIF CFLAG:MASTER:現在位置 == ARG
+	SETCOLOR 0 , 255, 0
+IF FLAG:訪問者の現在位置 != 900 && FLAG:訪問者の現在位置 == ARG
+	IF !GETBIT(FLAG:ＮＴＲパッチ設定,31) && CFLAG:MASTER:現在位置 != FLAG:訪問者の現在位置 && CAN_MOVE(CFLAG:MASTER:現在位置, FLAG:訪問者の現在位置) != 2
+	;IF CFLAG:MASTER:現在位置 != FLAG:訪問者の現在位置 && CAN_MOVE(CFLAG:MASTER:現在位置, FLAG:訪問者の現在位置) != 2
+	;IF CAN_MOVE(CFLAG:MASTER:現在位置, FLAG:訪問者の現在位置) != 2
+		;目の届かない場所だと色の変化なし
+	ELSE
+		IF FLAG:訪問者のムード == 1 || FLAG:訪問者のムード == 2
+			SETCOLOR 255,255,72
+		ELSEIF FLAG:訪問者のムード == 3 || FLAG:訪問者のムード == 4
+			SETCOLOR 255,0,0
+		ELSE
+			SETCOLOR 0,0,255
+		ENDIF
+	ENDIF
+ENDIF
+PRINTBUTTON (ARG > 9 ? TOSTR(ARG) # TOFULL(TOSTR(ARG))),ARG
+RESETCOLOR
+
+;MASTER遠距離移動
+;ARG:0	最終目的地
+;RETURN	今回移動するところ
+@FARMOVE(ARG:0)
+;LOCAL一覧
+;0	現在の位置
+;1	暫定目的地
+
+;現在位置取得
+LOCAL:0 = CFLAG:MASTER:現在位置
+
+;暫定目的地決定
+LOCAL:1 = ARG:0
+$LOOP
+;暫定目的地に直接移動できる場合
+IF CAN_MOVE(CFLAG:MASTER:現在位置, LOCAL:1)
+	;そこに移動
+	RETURN LOCAL:1
+ENDIF
+
+;袋小路から行ける場所は固定なので、そこを目指す
+;厨房からは食堂のみ
+IF (LOCAL:0 == 7)
+	RETURN 6
+ENDIF
+;物置からは庭のみ
+IF (LOCAL:0 == 17)
+	RETURN 16
+ENDIF
+;食堂からは中央のみ
+IF (LOCAL:0 == 6)
+	RETURN 3
+ENDIF
+;浴室からは中央のみ
+IF (LOCAL:0 == 15)
+	RETURN 3
+ENDIF
+;西の部屋は西のみ
+IF (LOCAL:0 == 8)
+	RETURN 4
+ENDIF
+IF (LOCAL:0 == 9)
+	RETURN 4
+ENDIF
+IF (LOCAL:0 == 10)
+	RETURN 4
+ENDIF
+IF (LOCAL:0 == 11)
+	RETURN 4
+ENDIF
+;東の部屋は東のみ
+IF (LOCAL:0 == 12)
+	RETURN 5
+ENDIF
+IF (LOCAL:0 == 13)
+	RETURN 5
+ENDIF
+IF (LOCAL:0 == 14)
+	RETURN 5
+ENDIF
+IF (LOCAL:0 == 18)
+	RETURN 5
+ENDIF
+;屋外トイレからは庭のみ
+IF (LOCAL:0 == 19)
+	RETURN 16
+ENDIF
+
+;公衆トイレからは街道のみ
+IF (LOCAL:0 == 21)
+	RETURN 20
+ENDIF
+;銭湯からは街道のみ
+IF (LOCAL:0 == 22)
+	RETURN 20
+ENDIF
+;風穴の底からは街道のみ
+IF (LOCAL:0 == 23)
+	RETURN 20
+ENDIF
+
+;各一軒家の中、３０番台は勇儀、４０番台はパルスィ、５０番台はヤマメ、６０番台はキスメ、７０番台は空き家
+;寝室からは廊下のみ
+IF (LOCAL:0 == 33)
+	RETURN 31
+ENDIF
+;キッチンからはリビングのみ
+IF (LOCAL:0 == 34)
+	RETURN 32
+ENDIF
+;浴室からは廊下のみ
+IF (LOCAL:0 == 35)
+	RETURN 31
+ENDIF
+;庭からはリビングのみ
+IF (LOCAL:0 == 36)
+	RETURN 32
+ENDIF
+;トイレからは廊下のみ
+IF (LOCAL:0 == 37)
+	RETURN 31
+ENDIF
+
+;寝室からは廊下のみ
+IF (LOCAL:0 == 43)
+	RETURN 41
+ENDIF
+;キッチンからはリビングのみ
+IF (LOCAL:0 == 44)
+	RETURN 42
+ENDIF
+;浴室からは廊下のみ
+IF (LOCAL:0 == 45)
+	RETURN 41
+ENDIF
+;庭からはリビングのみ
+IF (LOCAL:0 == 46)
+	RETURN 42
+ENDIF
+;トイレからは廊下のみ
+IF (LOCAL:0 == 47)
+	RETURN 41
+ENDIF
+
+;寝室からは廊下のみ
+IF (LOCAL:0 == 53)
+	RETURN 51
+ENDIF
+;キッチンからはリビングのみ
+IF (LOCAL:0 == 54)
+	RETURN 52
+ENDIF
+;浴室からは廊下のみ
+IF (LOCAL:0 == 55)
+	RETURN 51
+ENDIF
+;庭からはリビングのみ
+IF (LOCAL:0 == 56)
+	RETURN 52
+ENDIF
+;トイレからは廊下のみ
+IF (LOCAL:0 == 57)
+	RETURN 51
+ENDIF
+
+;寝室からは廊下のみ
+IF (LOCAL:0 == 63)
+	RETURN 61
+ENDIF
+;キッチンからはリビングのみ
+IF (LOCAL:0 == 64)
+	RETURN 62
+ENDIF
+;浴室からは廊下のみ
+IF (LOCAL:0 == 65)
+	RETURN 61
+ENDIF
+;庭からはリビングのみ
+IF (LOCAL:0 == 66)
+	RETURN 62
+ENDIF
+;トイレからは廊下のみ
+IF (LOCAL:0 == 67)
+	RETURN 61
+ENDIF
+
+;寝室からは廊下のみ
+IF (LOCAL:0 == 73)
+	RETURN 71
+ENDIF
+;キッチンからはリビングのみ
+IF (LOCAL:0 == 74)
+	RETURN 72
+ENDIF
+;浴室からは廊下のみ
+IF (LOCAL:0 == 75)
+	RETURN 71
+ENDIF
+;庭からはリビングのみ
+IF (LOCAL:0 == 76)
+	RETURN 72
+ENDIF
+;トイレからは廊下のみ
+IF (LOCAL:0 == 77)
+	RETURN 71
+ENDIF
+
+
+;直接移動できない場合、1つ近い位置を暫定目的地に設定し直してループ
+SELECTCASE LOCAL:1
+CASE 1
+	;正門に直接行けない場合、広間を目指す。旧都は街道を目指す
+	IF LOCAL:0 >= 21
+	LOCAL:1 = 20
+	ELSE
+	LOCAL:1 = 2
+	ENDIF
+CASE 2
+	;広間を目指す場合、現在地が16,15,6なら3を目指す
+	IF (LOCAL:0 == 16)||(LOCAL:0 == 6)||(LOCAL:0 == 15)
+		LOCAL:1 = 3
+	;西部屋からは西廊下を目指す
+	ELSEIF (LOCAL:0 == 8)||(LOCAL:0 == 9)||(LOCAL:0 == 10)||(LOCAL:0 == 11)
+		LOCAL:1 = 4
+	;東部屋からは東廊下を
+	ELSEIF (LOCAL:0 == 12)||(LOCAL:0 == 13)||(LOCAL:0 == 14)||(LOCAL:0 == 18)
+		LOCAL:1 = 5
+	;厨房からは食堂を
+	ELSEIF (LOCAL:0 == 7)
+		LOCAL:1 = 6
+	;街道からは正門を
+	ELSEIF (LOCAL:0 >= 20)
+		LOCAL:1 = 1
+	ENDIF
+CASE 3
+	;中央に直接行けない場合、屋外からは16を目指す
+	IF (LOCAL:0 == 17)||(LOCAL:0 == 19)
+	LOCAL:1 = 16
+	;それ以外からは広間を目指す
+	ELSE
+	LOCAL:1 = 2
+	ENDIF
+CASE 4
+	;西廊下に直接行けない場合、2を目指す
+	LOCAL:1 = 2
+CASE 5
+	;東廊下に直接行けない場合、2を目指す
+	LOCAL:1 = 2
+CASE 6
+	;食堂に直接行けない場合、3を目指す
+	LOCAL:1 = 3
+CASE 7
+	;厨房に直接行けない場合、6を目指す
+	LOCAL:1 = 6
+CASE 8
+	;西にある部屋に直接行けない場合、4を目指す
+	LOCAL:1 = 4
+CASE 9
+	LOCAL:1 = 4
+CASE 10
+	LOCAL:1 = 4
+CASE 11
+	LOCAL:1 = 4
+CASE 12
+	;東部屋に直接行けない場合、5を目指す
+	LOCAL:1 = 5
+CASE 13
+	LOCAL:1 = 5
+CASE 14
+	LOCAL:1 = 5
+CASE 15
+	;浴室に直接行けない場合、3を目指す
+	LOCAL:1 = 3
+CASE 16
+	;庭に直接行けない場合、3を目指す
+	LOCAL:1 = 3
+CASE 17
+	;物置に直接行けない場合、16を目指す
+	LOCAL:1 = 16
+CASE 18
+	;屋内トイレに直接行けない場合、5を目指す
+	LOCAL:1 = 5
+CASE 19 
+	;屋外トイレに直接行けない場合、16を目指す
+	LOCAL:1 = 16
+CASE 20
+	;街道に直接行けない場合、家からは玄関を目指し、それ以外からは1を目指す
+	IF (LOCAL:0 == 31)||(LOCAL:0 == 32)||(LOCAL:0 == 33)||(LOCAL:0 == 34)||(LOCAL:0 ==35)||(LOCAL:0 == 36)||(LOCAL:0 == 37)
+	LOCAL:1 = 30
+	ELSEIF (LOCAL:0 == 41)||(LOCAL:0 == 42)||(LOCAL:0 == 43)||(LOCAL:0 == 44)||(LOCAL:0 ==45)||(LOCAL:0 == 46)||(LOCAL:0 == 47)
+	LOCAL:1 = 40
+	ELSEIF (LOCAL:0 == 51)||(LOCAL:0 == 52)||(LOCAL:0 == 53)||(LOCAL:0 == 54)||(LOCAL:0 ==55)||(LOCAL:0 == 56)||(LOCAL:0 == 57)
+	LOCAL:1 = 50
+	ELSEIF (LOCAL:0 == 61)||(LOCAL:0 == 62)||(LOCAL:0 == 63)||(LOCAL:0 == 64)||(LOCAL:0 ==65)||(LOCAL:0 == 66)||(LOCAL:0 == 67)
+	LOCAL:1 = 60
+	ELSEIF (LOCAL:0 == 71)||(LOCAL:0 == 72)||(LOCAL:0 == 73)||(LOCAL:0 == 74)||(LOCAL:0 ==75)||(LOCAL:0 == 76)||(LOCAL:0 == 77)
+	LOCAL:1 = 70
+	ELSE
+	LOCAL:1 = 1
+	ENDIF
+CASE 21
+	;公衆トイレに直接行けない場合、20を目指す
+	LOCAL:1 = 20
+CASE 22
+	;銭湯に直接行けない場合、20を目指す
+	LOCAL:1 = 20
+CASE 23
+	;風穴の底に直接行けない場合、20を目指す
+	LOCAL:1 = 20
+	
+CASE 30
+	;勇儀宅(玄関)に直接行けない場合、中側からは31を目指す。それ以外は20を目指す
+	IF (LOCAL:0 == 32)||(LOCAL:0 == 33)||(LOCAL:0 == 34)||(LOCAL:0 == 35)||(LOCAL:0 ==36)||(LOCAL:0 == 37)
+	LOCAL:1 = 31
+	ELSE
+	LOCAL:1 = 20
+	ENDIF
+CASE 31
+	;廊下に直接行けない場合、庭、キッチンからはリビングを目指す。それ以外は玄関を目指す。
+	IF (LOCAL:0 == 34)||(LOCAL:0 == 36)
+	LOCAL:1 = 32
+	ELSE
+	LOCAL:1 = 30
+	ENDIF
+CASE 32
+	;リビングに直接行けない場合、廊下を目指す
+	LOCAL:1 = 31
+CASE 33
+	;寝室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 31
+CASE 34
+	;キッチンに直接行けない場合、リビングを目指す
+	LOCAL:1 = 32
+CASE 35
+	;浴室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 31
+CASE 36
+	;庭に直接行けない場合、リビングを目指す
+	LOCAL:1 = 32
+CASE 37
+	;トイレに直接行けない場合、廊下を目指す
+	LOCAL:1 = 31
+	
+CASE 40
+	;パルスィ宅(玄関)に直接行けない場合、中側からは41を目指す。それ以外は20を目指す
+	IF (LOCAL:0 == 42)||(LOCAL:0 == 43)||(LOCAL:0 == 44)||(LOCAL:0 == 45)||(LOCAL:0 ==46)||(LOCAL:0 == 47)
+	LOCAL:1 = 41
+	ELSE
+	LOCAL:1 = 20
+	ENDIF
+CASE 41
+	;廊下に直接行けない場合、庭、キッチンからはリビングを目指す。それ以外は玄関を目指す。
+	IF (LOCAL:0 == 44)||(LOCAL:0 == 46)
+	LOCAL:1 = 42
+	ELSE
+	LOCAL:1 = 40
+	ENDIF
+CASE 42
+	;リビングに直接行けない場合、廊下を目指す
+	LOCAL:1 = 41
+CASE 43
+	;寝室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 41
+CASE 44
+	;キッチンに直接行けない場合、リビングを目指す
+	LOCAL:1 = 42
+CASE 45
+	;浴室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 41
+CASE 46
+	;庭に直接行けない場合、リビングを目指す
+	LOCAL:1 = 42
+CASE 47
+	;トイレに直接行けない場合、廊下を目指す
+	LOCAL:1 = 41
+	
+CASE 50
+	;ヤマメ宅(玄関)に直接行けない場合、中側からは31を目指す。それ以外は20を目指す
+	IF (LOCAL:0 == 52)||(LOCAL:0 == 53)||(LOCAL:0 == 54)||(LOCAL:0 == 55)||(LOCAL:0 ==56)||(LOCAL:0 == 57)
+	LOCAL:1 = 51
+	ELSE
+	LOCAL:1 = 20
+	ENDIF
+CASE 51
+	;廊下に直接行けない場合、庭、キッチンからはリビングを目指す。それ以外は玄関を目指す。
+	IF (LOCAL:0 == 54)||(LOCAL:0 == 56)
+	LOCAL:1 = 52
+	ELSE
+	LOCAL:1 = 50
+	ENDIF
+CASE 52
+	;リビングに直接行けない場合、廊下を目指す
+	LOCAL:1 = 51
+CASE 53
+	;寝室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 51
+CASE 54
+	;キッチンに直接行けない場合、リビングを目指す
+	LOCAL:1 = 52
+CASE 55
+	;浴室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 51
+CASE 56
+	;庭に直接行けない場合、リビングを目指す
+	LOCAL:1 = 52
+CASE 57
+	;トイレに直接行けない場合、廊下を目指す
+	LOCAL:1 = 51
+	
+CASE 60
+	;キスメ宅(玄関)に直接行けない場合、中側からは31を目指す。それ以外は20を目指す
+	IF (LOCAL:0 == 62)||(LOCAL:0 == 63)||(LOCAL:0 == 64)||(LOCAL:0 == 65)||(LOCAL:0 == 66)||(LOCAL:0 == 67)
+	LOCAL:1 = 61
+	ELSE
+	LOCAL:1 = 20
+	ENDIF
+CASE 61
+	;廊下に直接行けない場合、庭、キッチンからはリビングを目指す。それ以外は玄関を目指す。
+	IF (LOCAL:0 == 64)||(LOCAL:0 == 66)
+	LOCAL:1 = 62
+	ELSE
+	LOCAL:1 = 60
+	ENDIF
+CASE 62
+	;リビングに直接行けない場合、廊下を目指す
+	LOCAL:1 = 61
+CASE 63
+	;寝室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 61
+CASE 64
+	;キッチンに直接行けない場合、リビングを目指す
+	LOCAL:1 = 62
+CASE 65
+	;浴室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 61
+CASE 66
+	;庭に直接行けない場合、リビングを目指す
+	LOCAL:1 = 62
+CASE 67
+	;トイレに直接行けない場合、廊下を目指す
+	LOCAL:1 = 61
+	
+CASE 70
+	;空き家(玄関)に直接行けない場合、中側からは31を目指す。それ以外は20を目指す
+	IF (LOCAL:0 == 72)||(LOCAL:0 == 73)||(LOCAL:0 == 74)||(LOCAL:0 == 75)||(LOCAL:0 == 76)||(LOCAL:0 == 77)
+	LOCAL:1 = 71
+	ELSE
+	LOCAL:1 = 20
+	ENDIF
+CASE 71
+	;廊下に直接行けない場合、庭、キッチンからはリビングを目指す。それ以外は玄関を目指す。
+	IF (LOCAL:0 == 74)||(LOCAL:0 == 76)
+	LOCAL:1 = 72
+	ELSE
+	LOCAL:1 = 70
+	ENDIF
+CASE 72
+	;リビングに直接行けない場合、廊下を目指す
+	LOCAL:1 = 71
+CASE 73
+	;寝室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 71
+CASE 74
+	;キッチンに直接行けない場合、リビングを目指す
+	LOCAL:1 = 72
+CASE 75
+	;浴室に直接行けない場合、廊下を目指す
+	LOCAL:1 = 71
+CASE 76
+	;庭に直接行けない場合、リビングを目指す
+	LOCAL:1 = 72
+CASE 77
+	;トイレに直接行けない場合、廊下を目指す
+	LOCAL:1 = 71
+	
+
+ENDSELECT
+GOTO LOOP
+
+@HAS_DUPLICATE_KEY, ARG
+#FUNCTION
+	FOR LOCAL, 1, CHARANUM
+		IF CFLAG:LOCAL:開始位置 == ARG
+			SIF TALENT:LOCAL:恋慕
+				RETURNF 1
+		ENDIF
+	NEXT
+

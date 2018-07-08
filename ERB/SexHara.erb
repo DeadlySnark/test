@@ -1,0 +1,642 @@
+;-------------------------------------------------------------------------------
+;410,掃除中に受けるセクハラ
+;-------------------------------------------------------------------------------
+@SOJI_SexHara
+	VARSET LOCAL
+	TRYCALLFORM SOJI_SexHara_Easy(MASTER)
+	SIF RESULT == 1
+		RETURN 0
+	WAIT
+	TRYCALLFORM SOJI_SexHara_Normal(MASTER)
+	SIF RESULT == 1
+		RETURN 0
+	WAIT
+	TRYCALLFORM SOJI_SexHara_Extra(MASTER)
+	SIF RESULT == 1
+		RETURN 0
+	WAIT
+	TRYCALLFORM SOJI_SexHara_Hard(MASTER)
+	SIF RESULT == 1
+		RETURN 0
+	WAIT
+	TRYCALLFORM SOJI_SexHara_Lunatic(MASTER)
+	SIF RESULT == 1
+		RETURN 0
+	WAIT
+	TRYCALLFORM SOJI_SexHara_Phantasm(MASTER)
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;視姦
+;@param ARG:0 対象となるキャラクター番号
+@SOJI_SexHara_Easy(ARG)
+	VARSET LOCAL
+	PRINTFORML %CALLNAME:ARG%が掃除をしていると、なにやら背後に気配を感じた
+	PRINT [0] - ふりかえる [1] - 気にするな！
+	INPUT
+	IF !RESULT
+		PRINTFORML %CALLNAME:ARG%がふりかえると、%NTR_NAME(0)%があなたの背後に立っている
+		IF CFLAG:ARG:屈服度 > 200 ;屈服度が高い場合は我慢するしかない
+			PRINTFORML なにか用でしょうか、と尋ねると%NTR_NAME(0)%はにやつきながら%CALLNAME:ARG%に掃除を続けるように命じた
+			PRINT [0] - がまんする
+			INPUT
+		ELSE
+			PRINTFORML なにか用でしょうか、と尋ねると%NTR_NAME(0)%はにやつきながら距離をとっていった
+			RETURN 1
+		ENDIF
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;おさわり
+;@param ARG:0 対象となるキャラクター番号
+@SOJI_SexHara_Normal(ARG)
+	VARSET LOCAL
+	IF CFLAG:ARG:屈服度 > 200 ;屈服度が高い場合
+		PRINTFORML %CALLNAME:ARG%が掃除を続けていると%NTR_NAME(0)%が腰の辺りを撫でてきた
+		PRINTFORML 我慢できずにふりかえると、%NTR_NAME(0)%はあなたの腰や尻を撫で回しながら掃除を続けるように促した
+	ELSE
+		PRINTFORML %CALLNAME:ARG%が気のせいだと思い掃除を続けていると誰かが腰の辺りを撫でてきた
+		PRINTFORML ふりかえると%NTR_NAME(0)%が厭らしい笑みを浮かべながらあなたの腰や尻を撫で回している
+	ENDIF
+	IF TALENT:ARG:公衆便所 ;公衆便所だから受け入れないとね
+		PRINT [1] - 受け入れる
+	ELSEIF CFLAG:ARG:屈服度 > 400 ;屈服度が高い場合我慢するしかない
+		PRINT [1] - 無視をする
+	ELSE
+		PRINT [0] - 振り払う [1] - 無視をする
+	ENDIF
+	INPUT
+	IF !RESULT
+		PRINTFORML %CALLNAME:ARG%が手を振り払い、やめるように伝えると
+		PRINTFORML %NTR_NAME(0)%は口先では謝りつつ、先ほどまで尻に触れていた
+		PRINTFORML 手をさすりながら%CALLNAME:ARG%から離れていった
+		SOURCE:ARG:歓楽 = 100
+		SOURCE:ARG:露出 = 100
+		SOURCE:ARG:欲情 = 100 + 200 * ABL:ARG:欲望
+		SOURCE:ARG:受動 = 100 + 200 * ABL:ARG:従順
+		RETURN 1 ;怒られたのでここまで
+	ELSE
+		IF TALENT:ARG:公衆便所
+			;バランス適当なので通常時の+50で処理。快Cも追加。ソースの値は要調整
+			IF TEQUIP:ARG:上半身着衣状況 > 1
+				PRINTFORML %CALLNAME:ARG%がわざとらしく胸元を開いて掃除を続けると
+				PRINTFORML %NTR_NAME(0)%は遠慮無く服の中に手を伸ばしてきた……
+			ELSE
+				PRINTFORML %CALLNAME:ARG%が高いところへ腕を伸ばして胸を無防備にすると
+				PRINTFORML %NTR_NAME(0)%は遠慮無く胸に手を伸ばしてきた……
+			ENDIF
+			LOCAL:0 = 50
+			;快Ｃは死に判定になっちゃうんでちょっと除去、共通部分はまとめた
+		ELSE
+			PRINTFORML %CALLNAME:ARG%が訪問者を無視して掃除を続けていると
+			PRINTFORML %NTR_NAME(0)%は鼻息を荒くし、尻だけでなく胸にも手を伸ばし、%CALLNAME:ARG%の肢体を堪能した
+		ENDIF
+		;上昇判定
+		DOWNBASE:ARG:体力 += 5
+		DOWNBASE:ARG:気力 += 50
+		SOURCE:ARG:快Ｂ = 120 + LOCAL:0
+		SOURCE:ARG:歓楽 = 100 + LOCAL:0
+		SOURCE:ARG:情愛 = 150 + LOCAL:0
+		SOURCE:ARG:欲情 = 170 + LOCAL:0
+		SOURCE:ARG:露出 =  70 + LOCAL:0
+		SOURCE:ARG:欲情 = 120 + LOCAL:0 + 240 * ABL:ARG:欲望
+		SOURCE:ARG:受動 = 120 + LOCAL:0 + 240 * ABL:ARG:従順
+		;着衣補正、上半身着衣がはだけ不可だったら0.8倍
+		IF TEQUIP:ARG:上半身着衣状況 > 1
+			TIMES SOURCE:ARG:快Ｂ , 0.80
+			TIMES SOURCE:ARG:欲情 , 0.80
+			TIMES SOURCE:ARG:露出 , 0.80
+		ENDIF
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;ぱんつ脱がす（穿いてる場合だけね）
+;@param ARG:0 対象となるキャラクター番号
+@SOJI_SexHara_Extra(ARG)
+	VARSET LOCAL
+	IF EQUIP:ARG:下半身上着１ || EQUIP:ARG:下半身上着２ || EQUIP:ARG:ボディースーツ || EQUIP:ARG:レオタード
+		;めくれないのでこのへんで満足しておく
+		PRINTFORML 一通り感触を堪能すると、%NTR_NAME(0)%は満足して%CALLNAME:ARG%から離れていった
+		RETURN 1
+	ELSEIF EQUIP:ARG:スカート || EQUIP:ARG:ワンピース || EQUIP:ARG:着物
+		;スカートは誘ってる証拠なのでイタズラ継続
+		PRINTFORMW 一通り感触を堪能すると、%NTR_NAME(0)%は%CLOTHNAME(9,EQUIP:ARG:スカート)%をめくりあげて
+	ENDIF
+	;ノーパンならこれは間違いなく誘ってるよね
+	IF EQUIP:ARG:下半身下着１ == 0 && EQUIP:ARG:下半身下着２ == 0
+		IF HAS_VAGINA(ARG)
+			IF STAIN:ARG:Ｖ & 4
+				;Vが精液で汚れてるか見るのはこれでいいのかな？
+				IF STAIN:ARG:Ｖ & 64
+					;更に処女を散らされた日なら文言変化。汚れだけで見てるので状況と全然合わない可能性もあるよ。要改造
+					PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の初めてを奪ったことを改めて確認し、満足した笑みを浮かべた
+				ELSEIF TALENT:ARG:公衆便所
+					;公衆便所だったらちゃんと使っていただいてるかチェックしないとね
+					PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%が便所として働いているのを確認し、満足した笑みを浮かべた
+				ELSE
+					PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の秘所から垂れ落ちる精液を確認し、にやにやしながら罵声を浴びせてきた
+				ENDIF
+			ELSEIF STAIN:ARG:Ｖ == 1
+				;愛液でトロトロのとき台詞を変える
+				IF PALAM:ARG:潤滑 >= PALAMLV:3
+					PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%のトロトロになっている秘部を目にし、好色そうな歓声を上げた
+					PRINTFORML 羞恥か期待か、太腿を伝う川は勢いを増し、ぽたぽた垂れ落ちる雫が足元に小さな水溜りを作っていた
+				ELSE
+					PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の湿り気を帯びた秘部を確認し、いやらしく感想を述べた
+				ENDIF
+			ELSEIF STAIN:ARG:Ｖ == 0
+				;Vが汚れていなかったら別なことを言う
+				IF TALENT:MASTER:公衆便所
+					;便所が綺麗なままはけしからんね
+					PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の汚れていない秘所を見て、ちゃんと使ってもらえと怒声を浴びせた
+				ELSE
+					PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の綺麗にしてある秘部を確認し、いやらしく笑った
+				ENDIF
+			ELSE
+				;それ以外のV汚れの場合。Vが母乳で汚れてるとか特殊すぎね？と追加しようかとも思ったけど、eratohoは簡単に噴乳するからそんなに特殊でもなかったわ
+				PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の秘部の汚れを確認し、いやらしく口笛を吹いた
+			ENDIF
+		ELSE
+			PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%が下着を穿いていないのを確認すると、秘部に息を吹きかけた
+		ENDIF
+		SOURCE:ARG:露出 += 200
+		SOURCE:ARG:欲情 += 100 + 200 * ABL:ARG:欲望
+		SOURCE:ARG:受動 += 100 + 200 * ABL:ARG:従順
+	ELSEIF EQUIP:ARG:下半身下着１ == 100
+		;貞操帯
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%が貞操帯を着けているのを確認すると、満足そうに頷いて離れていった
+		SOURCE:ARG:露出 += 100
+		SOURCE:ARG:欲情 += 100 + 100 * ABL:ARG:欲望
+		SOURCE:ARG:受動 += 100 + 100 * ABL:ARG:従順
+		RETURN 1
+	ELSE	;ぱんつはかせたくない
+		PRINTFORM %CALLNAME:ARG%の
+		IF EQUIP:ARG:下半身下着１
+			PRINTFORM %PANTS_DESCRIPTION(EQUIP:ARG:下半身下着１)%%PANTSNAME(EQUIP:ARG:下半身下着１)%
+		ELSEIF EQUIP:ARG:下半身下着２
+			PRINTFORM %PANTS_DESCRIPTION(EQUIP:ARG:下半身下着２)%%PANTSNAME(EQUIP:ARG:下半身下着２)%
+		ELSE
+			PRINTFORM 秘所を隠すそれ
+			;発生しないはず
+		ENDIF
+		PRINTFORML に手がかけられた……
+		IF TALENT:ARG:公衆便所 ;公衆便所なら要求に応えないとね
+			PRINT [1] - 受け入れる
+		ELSEIF CFLAG:ARG:屈服度 > 600 ;屈服度が高い場合我慢するしかない
+			PRINT [1] - 無視をする
+		ELSE
+			PRINT [0] - 睨みつける [1] - 無視をする
+		ENDIF
+		INPUT
+		IF !RESULT
+			PRINTFORML %CALLNAME:ARG%がふりかえって睨みつけると、
+			PRINTFORML %NTR_NAME(0)%はにやにやと笑みを浮かべたまま%CALLNAME:ARG%から離れていった
+			SOURCE:ARG:露出 += 100
+			SOURCE:ARG:欲情 += 100 + 200 * ABL:ARG:欲望
+			SOURCE:ARG:受動 += 100 + 200 * ABL:ARG:従順
+			RETURN 1 ;怒られたのでここまで
+		ELSE
+			;ぱんつはかせない
+			CFLAG:ARG:服装_下半身下着２ = 0
+			IF TALENT:ARG:公衆便所
+				;脱がせるときに糸引かせたいけどひとまずここまで
+				PRINTFORML %NTR_NAME(0)%は卑猥な言葉を浴びせながら%CALlNAME:ARG%の下着を脱がせると
+				PRINTFORML 脱ぎたてのにおいを堪能してから自分のポケットにねじ込んだ
+				PRINTFORML %CALLNAME:ARG%は頬を染めて俯きつつ、許しを得るまで股間を晒していた
+				SOURCE:ARG:露出 += 250
+				SOURCE:ARG:欲情 += 150 + 200 * ABL:ARG:欲望
+				SOURCE:ARG:受動 += 150 + 200 * ABL:ARG:従順
+				SOURCE:ARG:屈従 += 100
+			ELSE
+				PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の下着を脱がせると、自分のポケットにねじ込んだ
+				SOURCE:ARG:露出 += 200
+				SOURCE:ARG:欲情 += 100 + 200 * ABL:ARG:欲望
+				SOURCE:ARG:受動 += 100 + 200 * ABL:ARG:従順
+			ENDIF
+		ENDIF
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;前後ローター挿入(あるいは新品に交換)
+;@param ARG:0 対象となるキャラクター番号
+@SOJI_SexHara_Hard(ARG)
+	VARSET LOCAL
+	PRINTFORML %NTR_NAME(0)%は露わになった秘部を眺めていたが、やがて何かを取りだしたようだ……
+	IF TALENT:ARG:公衆便所 ;公衆便所なら何でも受け入れないとね
+		PRINT [1] - 受け入れる
+	ELSEIF CFLAG:ARG:屈服度 > 1000 ;屈服度が高い場合我慢するしかない
+		PRINT [1] - 無視をする
+	ELSE
+		PRINT [0] - もう我慢できない！ [1] - 無視をする
+	ENDIF
+	INPUT
+	IF !RESULT
+		PRINTFORML %CALLNAME:ARG%が耐えられずにふりかえると、%NTR_NAME(0)%は手に持っていたローターをサッと隠した
+		PRINTFORML %CALLNAME:ARG%が何か言おうとする前に、%NTR_NAME(0)%はそそくさと離れていった……
+		RETURN 1
+	ELSE
+		IF HAS_VAGINA(ARG)
+			IF TALENT:ARG:処女
+				;見るまでわからないからね、仕方がないね
+				PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の秘唇を押し広げ、処女膜を確認すると指を離した
+			ELSE
+				IF CFLAG:ARG:ローター挿入 != 0
+					;ローターは新しいのに交換しようねー
+					PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の秘所に押し込まれているローターの電池を取り替えた
+				ELSE
+					PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の秘所にローターを挿入して固定した
+				ENDIF
+				CFLAG:ARG:ローター挿入 = 240
+			ENDIF
+			PRINT そのまま
+		ENDIF
+		IF CFLAG:ARG:ローターA挿入 != 0
+			;ローターは新しいのに交換しようねー
+			PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%のアヌスに押し込まれているローターの電池を取り替えた
+		ELSE
+			PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%のアヌスにローターを挿入して固定した
+		ENDIF
+		CFLAG:ARG:ローターA挿入 = 240
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;性的奉仕を要求する
+;超勝手に内容追加。訪問者のペニペニも掃除しちゃう。訪問者の汚れはどこにとりに行けばいいんだろう？ 訪問者が男であるという大前提で作るよ
+;掃除先 RAND 0:手扱き,1:フェラ 2:パイズリ 3:立ち素股 4:後背立位 5:A後背立位 6:～他になにかあれば
+;ひとまず直接受け入れるのはカット。必要ならコメント切ってね
+;NTR訪問者との行為をとりあえず勝手に使用。要求を済ませると０に戻しておく
+;
+;掃除の手を止めさせず、掃除中にイタズラする感じにしたいなあ。
+;@param ARG:0 対象となるキャラクター番号
+@SOJI_SexHara_Lunatic(ARG)
+	VARSET LOCAL
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%に見せ付けるようにペニスを取り出すと
+	CFLAG:ARG:NTR訪問者との行為 = 0 ;一時的な格納先。要整理
+	SELECTCASE RAND:4
+		CASE 0
+			PRINTFORML 手で扱きあげるよう要求してきた
+			CFLAG:ARG:NTR訪問者との行為 = 0
+		CASE 1
+			PRINTFORML 口で綺麗にするよう要求してきた
+			CFLAG:ARG:NTR訪問者との行為 = 1
+		CASE 2
+			PRINTFORML 胸で挟むよう要求してきた
+			IF TALENT:ARG:バストサイズ == -2
+				PRINTFORML が、%CALLNAME:ARG%の洗濯板ぶりに首を振って諦めた
+				CFLAG:ARG:NTR訪問者との行為 = 0
+				RETURN 1
+			ELSE
+				CFLAG:ARG:NTR訪問者との行為 = 2 
+			ENDIF
+		CASE 3
+			PRINTFORML 秘貝で擦りあげるよう要求してきた
+			CFLAG:ARG:NTR訪問者との行為 = 3
+			;		CASE 4
+			;			IF EQUIP:ARG:ズボン || EQUIP:ARG:下半身上着
+			;				PRINTFORML %CALLNAME:ARG%の服を脱がせて後ろから抱きつくと、ゆっくりと秘部に狙いを定めた
+			;			ELSEIF EQUIP:ARG:ボディースーツ
+			;				PRINTFORML すぐに脱がせられなかったため、素股させることにした
+			;				CFlAG:ARG:NTR訪問者との行為 = 3
+			;			ELSEIF EQUIP:ARG:レオタード
+			;				PRINTFORML 股の部分をずらして後ろから抱きつくと、ゆっくりと秘部に狙いを定めた
+			;			ELSE
+			;				PRINTFORML 後ろから抱きつき、ゆっくりと秘部に狙いを定めた
+			;			ENDIF
+			;			CFLAG:ARG:NTR訪問者との行為 = 4
+			;			IF TALENT:ARG:処女
+			;				PRINTFORML が、%CALLNAME:ARG%が処女なのを思い出し、秘貝で奉仕させることにした
+			;				CFLAG:ARG:NTR訪問者との行為 = 3
+			;		CASE 5
+			;			IF EQUIP:ARG:ズボン || EQUIP:ARG:下半身上着
+			;				PRINTFORML %CALLNAME:ARG%の服を脱がせて後ろから抱きつくと、ゆっくりと小菊にあてがった
+			;			ELSEIF EQUIP:ARG:ボディースーツ
+			;				PRINTFORML すぐに脱がせられなかったため、素股させることにした
+			;				CFlAG:ARG:NTR訪問者との行為 = 3
+			;			ELSEIF EQUIP:ARG:レオタード
+			;				PRINTFORML 股の部分をずらして後ろから抱きつくと、ゆっくりと小菊にあてがった
+			;			ELSE
+			;				PRINTFORML 後ろから抱きつき、ゆっくりと小菊にあてがった
+			;			ENDIF
+			;			CFLAG:ARG:NTR訪問者との行為 = 5
+	ENDSELECT
+	IF TALENT:ARG:公衆便所 ;公衆便所だからご奉仕しないとね
+		PRINT [2] - 奉仕する
+	ELSEIF CFLAG:ARG:屈服度 > 1500 ;屈服度高いから逆らえないね
+		PRINT [2] - 渋々従う
+	ELSEIF CFLAG:ARG:屈服度 > 1000 ;屈服度高いと自分からは追い払えないね
+		PRINT [1] - 無視をする [2] - 渋々従う
+	ELSEIF CFLAG:ARG:屈服度 > 600 ;流石にちょっと我慢できないよね
+		PRINT [0] - 押しのける [1] - 無視をする [2] - 渋々従う
+	ELSEIF CFLAG:ARG:屈服度 < 100 ;え、こいつばかなの？　死ぬの？　屈服させてない相手にちんこ差し出すなんて狂気の沙汰だよ
+		PRINT [0] - 押しのける [1] - 無視をする [2] - 渋々従う [3] - 握り潰す
+	ELSE ;屈服度がちょっとあるとペニペニどうこうしようとは思えないね
+		PRINT [0] - 押しのける [1] - 無視をする [2] - 渋々従う
+	ENDIF
+	INPUT
+	IF !RESULT
+		PRINTFORML %CALLNAME:ARG%が抗議するようにやんわりと%NTR_NAME(0)%の胸を押すと
+		PRINTFORML %NTR_NAME(0)%は残念そうに距離をとった
+		CFLAG:ARG:NTR訪問者との行為 = 0
+		RETURN 1
+		;無理やりするのは降りかかる火の粉を払ったときだけ……多分
+	ELSEIF RESULT == 1
+		PRINTFORML %CALLNAME:ARG%が自発的に相手にしないと分かると
+		SELECTCASE RAND:3
+				;諦めるか否か　０：諦める　１：手に擦り付ける　２：服に擦り付ける　３：～他に何かあれば
+			CASE 0
+				PRINTFORML やる気が削げたのか少し距離をとった
+			CASE 1
+				PRINTFORML %CALLNAME:ARG%の手を取って気をやるまでペニスを擦りつけた
+				SETBIT STAIN:ARG:手,1
+				SETBIT STAIN:ARG:手,2
+				EXP:ARG:精液経験 ++
+			CASE 2
+				;思い出したら全裸判定入れるよ
+				IF EQUIP:ARG:下半身上着１ || EQUIP:ARG:下半身上着２ || EQUIP:ARG:ボディースーツ || EQUIP:ARG:レオタード
+					PRINTFORML %CALLNAME:ARG%の服でペニスを擦り、心行くまで射精して白く染めた
+				ELSEIF EQUIP:ARG:スカート || EQUIP:ARG:ワンピース || EQUIP:ARG:着物
+					PRINTFORML %CALLNAME:ARG%のスカートでペニスを包み、内側へとたっぷり欲望を吐き出した
+				ELSEIF EQUIP:ARG:下半身下着２ == 0 && EQUIP:ARG:下半身下着２ == 0
+					PRINTFORML %CALLNAME:ARG%の尻や太腿にペニスを擦りつけ、尾てい骨より少し上の辺りを狙って射精した
+					EXP:ARG:精液経験 ++
+				ELSE
+					THROW 無視された場合の処理で問題が発生しました。
+				ENDIF
+		ENDSELECT
+		CFLAG:ARG:NTR訪問者との行為 = 0
+		RETURN 1
+	ELSEIF RESULT == 2
+		;後でエッチしちゃう処理入れるよ。覚えてたら
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の奉仕を堪能し、射精の終わったペニスの汚れを綺麗にさせた
+		IF CFLAG:ARG:NTR訪問者との行為 == 0 ;手扱き
+			SETBIT STAIN:ARG:手,1
+			SETBIT STAIN:ARG:手,2
+			EXP:ARG:手淫経験 ++
+			EXP:ARG:精液経験 ++
+			SOURCE:ARG:達成 += 100
+			SOURCE:ARG:屈従 += 100
+		ELSEIF CFLAG:ARG:NTR訪問者との行為 == 1 ;フェラ
+			SETBIT STAIN:ARG:口,1
+			SETBIT STAIN:ARG:口,2
+			EXP:ARG:口淫経験 ++
+			EXP:ARG:精液経験 ++
+			EXP:ARG:精飲経験 ++
+			SOURCE:ARG:達成 += 150
+			SOURCE:ARG:屈従 += 100
+			SIF TALENT:ARG:汚臭耐性 <= 2
+				SOURCE:ARG:不潔 += 50
+		ELSEIF CFLAG:ARG:NTR訪問者との行為 == 2 ;パイズリ
+			SETBIT STAIN:ARG:Ｂ,1
+			SETBIT STAIN:ARG:Ｂ,2
+			EXP:ARG:パイズリ経験 ++
+			EXP:ARG:精液経験 ++
+			EXP:ARG:奉仕快楽経験 ++
+			SOURCE:ARG:快Ｂ += 50 * ABL:ARG:Ｂ感覚
+			SOURCE:ARG:達成 += 150
+			SOURCE:ARG:屈従 += 100
+			SOURCE:ARG:露出 += 50
+			;パイズリフェラにランダムで変更したいけどとりあえず置いておく
+		ELSEIF CFLAG:ARG:NTR訪問者との行為 == 3 ;スマタ
+			SETBIT STAIN:ARG:Ｖ,1
+			SETBIT STAIN:ARG:Ｖ,2
+			EXP:ARG:精液経験 ++
+			EXP:ARG:奉仕快楽経験 ++
+			SOURCE:ARG:快Ｃ += 50 * ABL:ARG:Ｃ感覚
+			SOURCE:ARG:液体 += 100
+			SOURCE:ARG:達成 += 150
+			SOURCE:ARG:屈従 += 100
+			SOURCE:ARG:欲情 += 100 + 50 * ABL:ARG:欲望
+			SOURCE:ARG:露出 += 100 + 50 * ABL:ARG:露出癖
+			;		ELSEIF CFLAG:ARG:NTR訪問者との行為 == 4 ;後背位
+			;			SETBIT STAIN:ARG:Ｖ,1
+			;			SETBIT STAIN:ARG:Ｖ,2
+			;			SETBIT STAIN:ARG:膣内,1
+			;			SETBIT STAIN:ARG:膣内,2
+			;			EXP:ARG:Ｖ経験 ++
+			;			EXP:ARG:Ｖ性交経験 ++
+			;			EXP:ARG:精液経験 ++
+			;			SOURCE:ARG:快Ｖ += 50 * ABL:ARG:Ｖ感覚
+			;			SOURCE:ARG:液体 += 100
+			;			SOURCE:ARG:性行動 += 150
+			;			SOURCE:ARG:達成 += 150
+			;			SOURCE:ARG:屈従 += 100
+			;			SOURCE:ARG:欲情 += 100 + 50 * ABL:ARG:欲望
+			;			SOURCE:ARG:受動 += 100 + 50 * ABL:ARG:従順
+			;			SOURCE:ARG:露出 += 100 + 50 * ABL:ARG:露出癖
+			;		ELSEIF CFLAG:ARG:NTR訪問者との行為 == 5 ;A後背位
+			;			SETBIT STAIN:ARG:Ａ,1
+			;			SETBIT STAIN:ARG:Ａ,2
+			;			SETBIT STAIN:ARG:腸内,1
+			;			SETBIT STAIN:ARG:腸内,2
+			;			EXP:ARG:Ａ経験 ++
+			;			EXP:ARG:Ａ性交経験 ++
+			;			EXP:ARG:精液経験 ++
+			;			SOURCE:ARG:快Ａ += 50 * ABL:ARG:Ａ感覚
+			;			SOURCE:ARG:液体 += 100
+			;			SOURCE:ARG:性行動 += 150
+			;			SOURCE:ARG:達成 += 150
+			;			SOURCE:ARG:屈従 += 100
+			;			SOURCE:ARG:不潔 += 50
+			;			SOURCE:ARG:欲情 += 100 + 50 * ABL:ARG:欲望
+			;			SOURCE:ARG:受動 += 100 + 50 * ABL:ARG:従順
+			;			SOURCE:ARG:露出 += 100 + 50 * ABL:ARG:露出癖
+		ELSE
+			THROW 行為の決定で問題が発生しました。
+			RETURN 1
+		ENDIF
+		CFLAG:ARG:NTR訪問者との行為 = 0
+	ELSEIF RESULT == 3
+		PRINTFORMW こきゅり
+		PRINTFORML そんな音がしそうなほど、%CALLNAME:ARG%は二つの宝玉を力強く握って擦り合わせた
+		PRINTFORML %NTR_NAME(0)%は死に瀕したような情けない悲鳴を上げて膝から崩れ落ち
+		PRINTFORML 股間を押さえながらのた打ち回っている
+		PRINTFORMW その姿を見下ろしながら%CALLNAME:ARG%は思わず呟いた
+		PRINTFORMW 「足元がお留守ですよ」
+		;訪問者撃退フラグとか入れてみた。暫くあなたから逃げるように移動パターンを変えてみたいねそのうち
+		PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%を追い出す事に成功した！
+		FLAG:訪問者の現在位置 = 900
+		CALL NTR_RESET_VISITOR_ACTION(-1)
+		FLAG:訪問者との汚れ判定に使用 = 0
+		FLAG:訪問者滞在時間カウンタ = 0
+		;屈服度減算。握り潰しちゃったからね。結構下げるよ
+		CFLAG:ARG:屈服度 = MAX(CFLAG:ARG:屈服度 - 100 - RAND:100, 0)
+		;勝利時住人の評価UP、同時にNTR状態の住人の評価ダウン、訪問者の情けない姿に皆幻滅
+		FOR LOCAL,0,CHARANUM
+			IF LOCAL == ARG
+				;自分自身は評価しない
+			ELSEIF CFLAG:LOCAL:現在位置 == CFLAG:ARG:現在位置
+				IF CFLAG:LOCAL:好感度 > CFLAG:LOCAL:屈服度
+					CFLAG:LOCAL:好感度 = CFLAG:LOCAL:好感度 + 50
+					CFLAG:LOCAL:屈服度 = CFLAG:LOCAL:屈服度 - 100
+					PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:ARG%を褒めてくれた。
+				ELSE
+					IF TALENT:LOCAL:公衆便所
+						CFLAG:LOCAL:好感度 = CFLAG:LOCAL:好感度 - 100
+						CFLAG:LOCAL:屈服度 = CFLAG:LOCAL:屈服度 - 100
+						PRINTFORML %CALLNAME:LOCAL%は泡を吹いてメイド妖精たちに運ばれて行く%NTR_NAME(0)%の股間を心配そうに見つめていた
+						;便所だから自分のご奉仕先である大好きなものを粗末にする莫迦達に幻滅するよ
+					ELSEIF TALENT:LOCAL:NTR
+						CFLAG:LOCAL:好感度 = CFLAG:LOCAL:好感度 - 50
+						CFLAG:LOCAL:屈服度 = CFLAG:LOCAL:屈服度 - 200
+						PRINTFORML %CALLNAME:LOCAL%は泡を吹いてメイド妖精たちに運ばれて行く%NTR_NAME(0)%を呆れた目で見ていた
+						;NTRだから大事な人のを潰したから評価は下がるけど、自分以外に手を出して自業自得とも思ってるよ
+					ELSE
+						CFLAG:LOCAL:屈服度 = CFLAG:LOCAL:屈服度 - 100
+						PRINTFORML %CALLNAME:LOCAL%はそこで起きたことを見なかったことにした
+						;まだ陥落はしてないから、自分以外へのセクハラで倒れたんだし自業自得と思ってるよ
+					ENDIF
+				ENDIF
+			ENDIF
+		NEXT
+		RETURN 1
+	ELSE
+		THROW 反応の決定で問題が発生しました。
+		RETURN 1
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;あなたを管理しちゃう
+;@param ARG:0 対象となるキャラクター番号
+@SOJI_SexHara_Phantasm(ARG)
+	VARSET LOCAL
+	IF HAS_PENIS(ARG)
+		;ちんこがある場合貞操帯優先
+		CALL SOJI_SexHara_Phantasm_Route1(ARG)
+		RETURN 1
+	ELSE
+		;ちんこがない場合
+		CALL SOJI_SexHara_Phantasm_Route2(ARG)
+		RETURN 1
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;あなたを管理しちゃう - ペニス用貞操帯をつけさせる
+;@param ARG:0 対象となるキャラクター番号
+@SOJI_SexHara_Phantasm_Route1(ARG)
+	VARSET LOCAL
+	IF CFLAG:ARG:ペニス用貞操帯着用 == 0
+		;つけていない場合
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の目の前で、小さなペニス用の貞操帯を取りだした
+		IF CFLAG:ARG:屈服度 > 2000 ;屈服度が高い場合は拒否できない
+			PRINT [1] - 着けてもらう
+		ELSE
+			PRINT [0] - それは流石に許されない！ [1] - 反応したら負け……反応したら負け……
+		ENDIF
+		INPUT
+		IF !RESULT
+			PRINTFORML %CALLNAME:ARG%が腕を掴んで止めると、%NTR_NAME(0)%は貞操帯を片付け離れていった……
+			RETURN 1
+		ELSE
+			PRINTFORML %CALLNAME:ARG%は%CALLNAME:ARG%のペニスに貞操帯を着けると、１週間後に外してやると言って離れていった……
+			;屈服度が劇的に増える。満たない場合は強制的に1500に
+			CFLAG:ARG:屈服度 = MAX (CFLAG:ARG:屈服度 + 20 + RAND:20,1500)
+			CFLAG:ARG:ペニス用貞操帯着用 = TIME_PROGRESS(0)
+		ENDIF
+	ELSEIF CFLAG:ARG:ペニス用貞操帯着用 > 1000
+		;すでに着けている場合。ちょっとクソ管理だけど、1000未満は別で使う
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の貞操帯を指でコンコンと叩き、鍵をちらつかせた
+		IF CFLAG:ARG:屈服度 > 4000
+			;屈服度が非常に高い場合は耐えることしかできない
+			PRINT [1] - 外して貰えるまで我慢
+		ELSE
+			PRINT [0] - もう外してくれと頼む [1] - 外して貰えるまで我慢
+		ENDIF
+		INPUT
+		IF RESULT==0 ;もう外してくれと頼んだ
+			IF TIME_PROGRESS(CFLAG:ARG:ペニス用貞操帯着用) < 10080
+				;７日経過していない
+				PRINTFORML %NTR_NAME(0)%は、いつ着けたのか覚えていないのなら、今日から数え直せと言い離れていった……
+				;立場をわからされる事で屈服度が増加
+				SOURCE:ARG:受動 += 100 + 200 * ABL:ARG:従順
+				CFLAG:ARG:屈服度 += 20 + RAND:20
+				;着用日をリセット
+				CFLAG:ARG:ペニス用貞操帯着用 = TIME_PROGRESS(0)
+			ELSE
+				;７日我慢できた
+				PRINTFORML %NTR_NAME(0)%はそろそろ許してやると言い、%CALLNAME:ARG%の貞操帯を取り外した。
+				CFLAG:ARG:ペニス用貞操帯着用 = 0
+				SOURCE:ARG:受動 += 100 + 200 * ABL:ARG:従順
+			ENDIF
+		ELSE ;外して貰えるまで我慢している
+			IF TIME_PROGRESS(CFLAG:ARG:ペニス用貞操帯着用) < 10080
+				;７日経過していない
+				PRINTFORML %NTR_NAME(0)%は意地悪く笑い、貞操帯の鍵をポケットにしまい込んだ
+				CFLAG:ARG:屈服度 += RAND:20
+			ELSEIF TIME_PROGRESS(CFLAG:ARG:ペニス用貞操帯着用) < RAND(86400)
+				;７日以上経過しているがもう少し付けさせておきたい場合
+				PRINTFORML %NTR_NAME(0)%は貞操帯が気に入ったようだからもう少し着けていろと言い、貞操帯の鍵をポケットにしまい込んだ
+				CFLAG:ARG:屈服度 += RAND:20
+			ELSE
+				;７日以上経過していて気が向いた場合(最大で60日我慢させる)
+				PRINTFORML %NTR_NAME(0)%は、貞操帯を着けてから{TIME_PROGRESS(CFLAG:ARG:ペニス用貞操帯着用)/1440}日になるし、そろそろ許してやると言い、%CALLNAME:ARG%の貞操帯を取り外した。
+				CFLAG:ARG:ペニス用貞操帯着用 = 0
+				SOURCE:ARG:受動 += 100 + 200 * ABL:ARG:従順
+			ENDIF
+		ENDIF
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;あなたを管理しちゃう - ○○をつけさせる
+;(前提条件となるパッチを作成中)
+;@param ARG:0 対象となるキャラクター番号
+@SOJI_SexHara_Phantasm_Route2(ARG)
+	VARSET LOCAL
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;勃起に対するペナルティ処理
+;@param ARG:0 対象となるキャラクター
+@SOJI_SexHara_ErectPunishment(ARG)
+	VARSET LOCAL
+	IF !HAS_PENIS(ARG)
+		;ちんこが無ければ勃起しないので処理しない
+		RETURN 0
+	ELSEIF CFLAG:ARG:ペニス用貞操帯着用 == 0
+		;貞操帯をつけてなければペナルティなし
+		IF BASE:ARG:勃起 == MAXBASE:ARG:勃起
+			;最大まで勃起していると上限が徐々に回復。
+			;ただし500未満になってしまうと、普通の方法では回復しない。
+			;とりあえず回復方法は考えてあるのでそのうち実装します。
+			IF MAXBASE:ARG:勃起 < 300
+				PRINTFORML %CALLNAME:(ARG:0)+"のペニスはもう勃起する能力を失ってしまったようだ……"%
+			ELSEIF MAXBASE:ARG:勃起 < 1000
+				;回復中
+				PRINTFORML %"まだ"+CALLNAME:(ARG:0)+"のペニスは十分に勃起できないようだ……"%
+				MAXBASE:ARG:勃起 = MIN(MAXBASE:ARG:勃起+1,1500)
+			ELSEIF 1000<=MAXBASE:ARG:勃起
+				;挿入可能な状態（1000以上）に戻った！
+				PRINTFORML %CALLNAME:(ARG:0)+"のペニスは挿入するのに十分なほど堅くなっている！"%
+				MAXBASE:ARG:勃起 = MIN(MAXBASE:ARG:勃起+1,1500)
+			ELSE
+				MAXBASE:ARG:勃起 = MIN(MAXBASE:ARG:勃起+1,1500)
+			ENDIF
+		ENDIF
+		RETURN 0
+	ELSEIF BASE:ARG:勃起 > 300
+		;貞操帯がある状態で勃起したら痛い。ただしダメージにも上限はある
+		LOCAL = LIMIT ((BASE:ARG:勃起-300)/10,0,100)
+		SELECTCASE LOCAL
+			CASE IS > 40
+				PRINTFORML 貞操帯の中で勃起したペニスがひどく痛んだ！(体力-{LOCAL}、苦痛+{LOCAL})
+			CASE IS > 10
+				PRINTFORML 貞操帯の中で勃起したペニスが痛んだ！(体力-{LOCAL}、苦痛+{LOCAL})
+			CASEELSE
+				PRINTFORML 貞操帯の中で勃起したペニスがわずかに痛んだ(体力-{LOCAL}、苦痛+{LOCAL})
+		ENDSELECT
+		SOURCE:ARG:苦痛 += LOCAL
+		BASE:ARG:体力 -= LOCAL
+		BASE:ARG:勃起 = MIN(BASE:ARG:勃起,300)
+		;勃起を強制的に制限されて屈服度UP
+		CFLAG:ARG:屈服度 += RAND:5
+		;勃起力上限減少(だんだん勃起できない状況に慣れていく)
+		MAXBASE:ARG:勃起 = MAXBASE:ARG:勃起-(LOCAL/5+1)
+	ENDIF
+	BASE:ARG:勃起 = LIMIT(BASE:ARG:勃起,0,MAXBASE:ARG:勃起)
+RETURN 0

@@ -1,0 +1,4531 @@
+;-----------------------------------------------------------
+;各種NTRフラグの初期化
+@NTR_CLEAR_FLG
+	FOR LOCAL,1,CHARANUM
+		CFLAG:LOCAL:射精者 = 0
+		CFLAG:LOCAL:覗き発覚回数 = 0
+		CFLAG:LOCAL:覗き発覚時行為 = 0
+		CFLAG:LOCAL:ローター挿入者 = 0
+	NEXT
+	FLAG:ハーレム時カウンタ = 0
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;訪問者の出現処理
+;@return 1:xxx,0:xxx
+@VISITER_APPEARANCE
+	VARSET LOCAL
+	SIF !GETBIT(FLAG:ＮＴＲパッチ設定,0)
+		CALL NTR_OPTION
+	;お持ち帰りされていた場合は位置を初期化
+	SIF CFLAG:1:現在位置 < 900
+		CFLAG:1:現在位置 = 63
+	SIF CFLAG:2:現在位置 < 900
+		CFLAG:2:現在位置 = 53
+	SIF CFLAG:3:現在位置 < 900
+		CFLAG:3:現在位置 = 43
+	SIF CFLAG:4:現在位置 < 900
+		CFLAG:4:現在位置 = 33
+	SIF CFLAG:5:現在位置 <900
+		CFLAG:5:現在位置 = 13
+	SIF CFLAG:6:現在位置 <900
+		CFLAG:6:現在位置 = 11
+	SIF CFLAG:7:現在位置 <900
+		CFLAG:7:現在位置 = 10
+	SIF CFLAG:8:現在位置 <900
+		CFLAG:8:現在位置 = 12
+	
+	
+	;前日お持ち帰りされて帰ってきてない場合は朝帰り
+	IF GETBIT(FLAG:ＮＴＲパッチ設定,4)
+		TRYCALL NTR_MORNING_MASTER
+	ELSE
+		TRYCALL NTR_MORNING_MASTER_OLD
+	ENDIF
+	FOR LOCAL,1,CHARANUM
+		CALL NTR_BIT_TO_NUM_MAX(LOCAL)
+		LOCAL:1 = RESULT
+		CALL NTR_BIT_TO_NUM(LOCAL)
+		IF CFLAG:LOCAL:現在位置 == 900 && (LOCAL:1 < RESULT || 100 - 100 * CFLAG:LOCAL:屈服度 / (CFLAG:LOCAL:好感度 < 1 ? 1 # CFLAG:LOCAL:好感度) > RAND:100 || !GETBIT(FLAG:ＮＴＲパッチ設定,3))
+			;私室へ帰るように
+			CFLAG:LOCAL:現在位置 = GET_PRIVATE_ROOM(LOCAL, 0)
+			;朝のご奉仕イベント
+			IF NTR_CHK_VISIBLE(900)
+				CALL NTR_MESSAGE_14(LOCAL)
+			ENDIF
+			;LOCAL:2…行為(0:口奉仕,1:尻穴奉仕,2:淫壷奉仕,)
+			LOCAL:2 = 0
+			LOCAL:2 = RAND:(3 - TALENT:LOCAL:処女)
+			IF FLAG:再教育フラグ
+				IF TALENT:LOCAL:処女
+					LOCAL:2 = 1
+				ELSE
+					LOCAL:2 = 2
+				ENDIF
+			ENDIF
+			IF LOCAL:2 == 0
+				SETBIT STAIN:LOCAL:口,1
+				SETBIT STAIN:LOCAL:口,2
+				EXP:LOCAL:精液経験 ++
+				EXP:LOCAL:口淫経験 ++
+				EXP:LOCAL:精飲経験 ++
+				EXP:LOCAL:浮気精液経験 ++
+				EXP:LOCAL:浮気口淫経験 ++
+				EXP:LOCAL:浮気精飲経験 ++
+				TRYCALL 精力取得, 998
+				TRYCALL NTR_SAMEN_EXP_PLUS(LOCAL, 1)
+				IF NTR_CHK_VISIBLE(900)
+					CALL NTR_MESSAGE_14_0(LOCAL)
+					TRYCALLLIST
+						FUNC NTR_KOJO_K{LOCAL}_14_0
+						FUNC NTR_KOJO_K_14_0(LOCAL)
+					ENDFUNC
+				ENDIF
+				;手
+				SETBIT STAIN:LOCAL:手,1
+				SETBIT STAIN:LOCAL:手,2
+				;好感度吸収
+				SIF GETBIT(FLAG:ＮＴＲパッチ設定,1)
+					CFLAG:LOCAL:好感度 -= 20
+				CFLAG:LOCAL:射精者 = 21
+			ELSEIF LOCAL:2 == 1
+				SETBIT STAIN:LOCAL:Ａ,1
+				SETBIT STAIN:LOCAL:Ａ,2
+				EXP:LOCAL:精液経験 ++
+				EXP:LOCAL:Ａ経験 ++
+				EXP:LOCAL:Ａ性交経験 ++
+				EXP:LOCAL:Ａ絶頂経験 ++
+				EXP:LOCAL:絶頂経験 ++
+				EXP:LOCAL:浮気精液経験 ++
+				EXP:LOCAL:浮気Ａ性交経験 ++
+				EXP:LOCAL:浮気絶頂経験 ++
+				;A感覚が高いと絶頂経験加算（強絶頂扱い）
+				CALL NTR_A_EXP_PLUS(LOCAL)
+				TRYCALL 精力取得, 998
+				TRYCALL NTR_SAMEN_EXP_PLUS(LOCAL, 0)
+				IF NTR_CHK_VISIBLE(900)
+					CALL NTR_MESSAGE_14_1(LOCAL)
+					TRYCALLLIST
+						FUNC NTR_KOJO_K{LOCAL}_14_1
+						FUNC NTR_KOJO_K_14_1(LOCAL)
+					ENDFUNC
+				ENDIF
+				;腸内
+				SETBIT STAIN:LOCAL:腸内,1
+				SETBIT STAIN:LOCAL:腸内,2
+				;好感度吸収
+				SIF GETBIT(FLAG:ＮＴＲパッチ設定,1)
+					CFLAG:LOCAL:好感度 -= 50
+				CFLAG:LOCAL:射精者 = 21
+			ELSEIF LOCAL:2 == 2
+				SETBIT STAIN:LOCAL:Ｖ,1
+				SETBIT STAIN:LOCAL:Ｖ,2
+				EXP:LOCAL:精液経験 ++
+				EXP:LOCAL:Ｖ経験 ++
+				EXP:LOCAL:Ｖ性交経験 ++
+				EXP:LOCAL:Ｖ絶頂経験 ++
+				EXP:LOCAL:絶頂経験 ++
+				EXP:LOCAL:浮気精液経験 ++
+				EXP:LOCAL:浮気Ｖ性交経験 ++
+				EXP:LOCAL:浮気絶頂経験 ++
+				;V感覚が高いと絶頂経験加算（強絶頂扱い）
+				CALL NTR_V_EXP_PLUS(LOCAL)
+				;TRYCALLFORM PREGNACY_S_CHECK(998,LOCAL,1)
+				TRYCALL 精力取得, 998
+				TRYCALL NTR_SAMEN_EXP_PLUS(LOCAL, 0)
+				TRYCALL 精子取得, 998, LOCAL
+				IF NTR_CHK_VISIBLE(900)
+					CALL NTR_MESSAGE_14_2(LOCAL)
+					TRYCALLLIST
+						FUNC NTR_KOJO_K{LOCAL}_14_2
+						FUNC NTR_KOJO_K_14_2(LOCAL)
+					ENDFUNC
+				ENDIF
+				;膣内
+				SETBIT STAIN:LOCAL:膣内,1
+				SETBIT STAIN:LOCAL:膣内,2
+				;好感度吸収
+				SIF GETBIT(FLAG:ＮＴＲパッチ設定,1)
+					CFLAG:LOCAL:好感度 -= 50
+				CFLAG:LOCAL:射精者 = 21
+			ENDIF
+			;公衆便所時もっと汚れて帰ってくる
+			IF TALENT:LOCAL:公衆便所
+				;手
+				SETBIT STAIN:LOCAL:手,1
+				SETBIT STAIN:LOCAL:手,2
+				;胸
+				SETBIT STAIN:LOCAL:Ｂ,1
+				SETBIT STAIN:LOCAL:Ｂ,2
+				;口
+				SETBIT STAIN:LOCAL:口,1
+				SETBIT STAIN:LOCAL:口,2
+				EXP:LOCAL:精液経験 ++
+				EXP:LOCAL:口淫経験 ++
+				EXP:LOCAL:精飲経験 ++
+				EXP:LOCAL:浮気精液経験 ++
+				EXP:LOCAL:浮気口淫経験 ++
+				EXP:LOCAL:浮気精飲経験 ++
+				TRYCALL 精力取得, 998
+				TRYCALL NTR_SAMEN_EXP_PLUS(LOCAL, 1)
+				;A
+				SETBIT STAIN:LOCAL:Ａ,1
+				SETBIT STAIN:LOCAL:Ａ,2
+				EXP:LOCAL:精液経験 ++
+				EXP:LOCAL:Ａ経験 ++
+				EXP:LOCAL:Ａ性交経験 ++
+				EXP:LOCAL:Ａ絶頂経験 ++
+				EXP:LOCAL:絶頂経験 ++
+				EXP:LOCAL:浮気精液経験 ++
+				EXP:LOCAL:浮気Ａ性交経験 ++
+				EXP:LOCAL:浮気絶頂経験 ++
+				;A感覚が高いと絶頂経験加算（強絶頂扱い）
+				CALL NTR_A_EXP_PLUS(LOCAL)
+				TRYCALL 精力取得, 998
+				TRYCALL NTR_SAMEN_EXP_PLUS(LOCAL, 0)
+				;V
+				SETBIT STAIN:LOCAL:Ｖ,1
+				SETBIT STAIN:LOCAL:Ｖ,2
+				EXP:LOCAL:精液経験 ++
+				EXP:LOCAL:Ｖ経験 ++
+				EXP:LOCAL:Ｖ性交経験 ++
+				EXP:LOCAL:Ｖ絶頂経験 ++
+				EXP:LOCAL:絶頂経験 ++
+				EXP:LOCAL:浮気精液経験 ++
+				EXP:LOCAL:浮気Ｖ性交経験 ++
+				EXP:LOCAL:浮気絶頂経験 ++
+				;V感覚が高いと絶頂経験加算（強絶頂扱い）
+				CALL NTR_V_EXP_PLUS(LOCAL)
+				;TRYCALLFORM PREGNACY_S_CHECK(998,LOCAL,1)
+				TRYCALL 精力取得, 998
+				TRYCALL NTR_SAMEN_EXP_PLUS(LOCAL, 0)
+				TRYCALL 精子取得, 998, LOCAL
+				;好感度吸収
+				SIF GETBIT(FLAG:ＮＴＲパッチ設定,1)
+					CFLAG:LOCAL:好感度 -= 50
+				CFLAG:LOCAL:射精者 = 21
+			ENDIF
+			;帰宅時のおみやげ
+			CALL NTR_PUNISHMENT(LOCAL)
+			IF NTR_CHK_VISIBLE(CFLAG:LOCAL:現在位置)
+				PRINTFORMW  ：
+				PRINTFORMW  ：
+				PRINTFORMW %CALLNAME:LOCAL%がどこかから帰ってきたようだ
+				CALL NTR_MESSAGE_0(LOCAL)
+				TRYCALLLIST
+					FUNC NTR_KOJO_K{LOCAL}_0
+					FUNC NTR_KOJO_K_0(LOCAL)
+				ENDFUNC
+				EXP:LOCAL:浮気外泊経験 ++
+			ENDIF
+			;訪問者と同伴してくる
+			;RETURN 0
+		ELSEIF CFLAG:LOCAL:現在位置 == 900 
+			CFLAG:LOCAL:長期滞在最大日数 += 1
+			CALL NTR_RESET_VISITOR_ACTION(LOCAL)
+			FLAG:訪問者との汚れ判定に使用 = 0
+		ENDIF
+		FLAG:再教育フラグ = 0
+	NEXT
+	;下記値を変更すると訪問者の来る確率が変わります
+	IF RAND:100 < 90 && DAY > 7 && GETBIT(FLAG:ＮＴＲパッチ設定, 7)
+		FOR LOCAL,0,CHARANUM
+			IF CFLAG:LOCAL:現在位置 == 900
+				FLAG:訪問者の現在位置 = 900
+				FLAG:31 = 0
+				RETURN 0
+			ENDIF
+		NEXT
+		;訪問者出現場所
+		FLAG:訪問者の現在位置 = 20
+		;FLAG:訪問者の現在位置 = 3
+		;FLAG:訪問者の現在位置 = 16
+		CALL NTR_RESET_VISITOR_ACTION(-1)
+		FLAG:訪問者との汚れ判定に使用 = 0
+		FLAG:訪問者滞在時間カウンタ = 0
+		PRINTFORML 館に誰か訪ねて来たようだ
+	ELSE
+		FLAG:訪問者の現在位置 = 900
+		FLAG:訪問者滞在時間カウンタ = 0
+	ENDIF
+
+;-------------------------------------------------------------------------------
+;訪問者移動
+;引数…なし
+;戻り値…0:移動しない
+;処理結果…FLAG:訪問者の現在位置を更新する
+@VISITER_MOVEMENT
+	;訪問者の滞在時間更新
+	FLAG:訪問者滞在時間カウンタ += TIME_PROGRESS(TFLAG:300)
+	;訪問者宅などの場合移動しない
+	SIF FLAG:訪問者の現在位置 == 0 || FLAG:訪問者の現在位置 == 900 || FLAG:訪問者の現在位置 == 901
+		RETURN 0
+	;LOCAL:1…1:睡眠中の住人と同室 0:睡眠中の住人と同室ではない
+	LOCAL:1 = 0
+	FOR LOCAL,1,CHARANUM
+		IF FLAG:訪問者の現在位置 == CFLAG:LOCAL:現在位置
+			IF CFLAG:LOCAL:睡眠
+				LOCAL:1 = 1
+			ELSEIF !GETBIT(FLAG:ＮＴＲパッチ設定, 24) || (TALENT:LOCAL:恋慕 || TALENT:LOCAL:NTR)
+				;訪問者の現在位置に起きている誰かがいれば移動しない
+				RETURN 0
+			ENDIF
+		ENDIF
+	NEXT
+	;LOCAL…0:移動する 1:移動しない
+	LOCAL = 0
+	;現在位置を強制的に開錠
+	FLAG:(300 + FLAG:訪問者の現在位置) = 0
+	;移動確率の判定 右辺のRAND:の数値が大きいと滞在時間が伸びる
+	SIF RAND:(TIME_PROGRESS(TFLAG:300) + 1) <= RAND:60
+		LOCAL = 1
+	;最大滞在時間とのチェック。30分以上経過で移動
+	SIF FLAG:訪問者滞在時間カウンタ >= 30
+		LOCAL = 0
+	;睡眠中の住人と同室であれば常に移動する
+	SIF LOCAL:1
+		LOCAL = 0
+	;LOCALが1ならば移動しない
+	SIF LOCAL
+		RETURN 0
+
+	TRYCALL DEBUGPRINT_あの人は何処に？()
+	LOCAL:1 = 0
+	RESULT:0 = 0
+	LOCAL:7 = 0
+	FOR LOCAL,1,MAXROOM()
+		; LOCAL…ループ変数「部屋番号」
+		; LOCAL:1…訪問者の移動先候補 0の時移動しない
+		; LOCAL:4…その部屋に行く最大確率
+		; LOCAL:7…過去最大の確率
+		; 初期化
+		RESULT:LOCAL = 0
+		; 入れない場合はcontinue
+		SIF CAN_MOVE(FLAG:訪問者の現在位置, LOCAL) == 0
+			CONTINUE
+		;基本確率 / 施錠時は確率半減。 / 人数補正2.5％／人
+		LOCAL:4 = (FLAG:(300 + LOCAL) ? 3000 # 10000) + CHK_TGT_IN_POS(LOCAL) * 250
+		
+		;行きにくくしたい補正
+		;睡眠中、妊娠中の住人がいる部屋は確率半減
+		SIF GET_ATTRIBUTE_OF_PERSON_IN_ROOM(LOCAL)
+			LOCAL:4 /= 2
+		;住人がいない部屋は確率半減
+		SIF CHK_TGT_IN_POS(LOCAL) == 0
+			LOCAL:4 /= 2
+		;見えるけど直接行けない部屋は確率半減
+		SIF CAN_MOVE(FLAG:訪問者の現在位置, LOCAL) > 1
+			LOCAL:4 /= 2
+		
+		RESULT:LOCAL = RAND:(LOCAL:4) + 1
+		;誰かいると移動確率が増える
+		;人数分だけループを回す
+		FOR LOCAL:5, 1, CHK_TGT_IN_POS(LOCAL)
+			LOCAL:6 = RAND:(LOCAL:4) + 1
+			SIF RESULT:LOCAL < LOCAL:6
+				RESULT:LOCAL = LOCAL:6
+		NEXT
+		;正門にいるとき、広間への確率を多めに補正
+		IF FLAG:訪問者の現在位置 == 1 && LOCAL == 2
+			LOCAL:6 = RAND:((LOCAL:4) + 7500) + 2500
+			SIF RESULT:LOCAL < LOCAL:6
+				RESULT:LOCAL = LOCAL:6
+		ENDIF
+		; 最大値更新？
+		IF RESULT:LOCAL > LOCAL:7
+			LOCAL:7 = RESULT:LOCAL
+			LOCAL:1 = LOCAL
+		ENDIF
+		DEBUGPRINTFORML 移動確率 {LOCAL}：【%GETPLACENAME(LOCAL)%】→ {RESULT:LOCAL}／{LOCAL:4}％、{CHK_TGT_IN_POS(LOCAL)}人在室
+	NEXT
+	;訪問者の移動
+	IF LOCAL:1
+		IF CFLAG:MASTER:現在位置 == LOCAL:1
+			PRINTFORML %NTR_NAME(0)%が【%GETPLACENAME(LOCAL:1)%】に入ってきた
+			LOCAL:3 = 1
+			FOR LOCAL,0,CHARANUM
+					IF CFLAG:LOCAL:現在位置 == LOCAL:1
+					IF CFLAG:LOCAL:うふふ != 0
+						IF LOCAL:3
+							PRINTFORML %NTR_NAME(0)%が入ってきたことで空気が変わってしまった・・・
+							LOCAL:3 = 0
+						ENDIF
+						CFLAG:LOCAL:うふふ = 0
+					ENDIF
+					CALL CLOTHES_RESET(LOCAL)
+					CALL CLOTHES_SETTING_TRAIN(LOCAL)
+				ENDIF
+			NEXT
+		ELSE
+			IF NTR_CHK_VISIBLE(LOCAL:1)
+				PRINTFORML %NTR_NAME(0)%は【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】から【%NTR_GETPLACENAME(LOCAL:1)%】に移動した
+			ENDIF
+		ENDIF
+		;訪問者の現在位置更新
+		FLAG:訪問者の現在位置 = LOCAL:1
+		FLAG:訪問者滞在時間カウンタ = 0
+	ENDIF
+
+;-------------------------------------------------------------------------------
+;ARGで指定した場所に住人がいるとその人数を返す。
+;寝取られ寸前、寝取られそうの場合倍カウントとする。
+;睡眠中の住人はカウントしない。
+;ARG…場所の指定
+;戻り値…指定した場所にいる住人の人数
+@CHK_TGT_IN_POS(ARG)
+	#FUNCTION
+	LOCAL = 0
+	FOR LOCAL:1,1,CHARANUM
+		; 訪問者「妊婦プレイは危険なの。」
+		SIF CFLAG:(LOCAL:1):にんっしんっ > 0
+			CONTINUE
+		; 訪問者「眠姦はレベルが高い。」
+		SIF CFLAG:(LOCAL:1):睡眠
+			CONTINUE
+		; 訪問者「カレシ持ちじゃないオンナには用はないッ！」
+		SIF GETBIT(FLAG:ＮＴＲパッチ設定,24) && ! (TALENT:(LOCAL:1):恋慕 || TALENT:(LOCAL:1):NTR)
+			CONTINUE
+		IF CFLAG:(LOCAL:1):現在位置 == ARG
+			LOCAL += TALENT:(LOCAL:1):恋慕
+			IF NTR_CHK_FAVORABLY(LOCAL:1, "寝取られ")
+				LOCAL += 1
+			ELSEIF NTR_CHK_FAVORABLY(LOCAL:1, "寝取られ寸前")
+				LOCAL += 2
+			ELSEIF NTR_CHK_FAVORABLY(LOCAL:1, "寝取られそう")
+				LOCAL += 2
+			ELSEIF NTR_CHK_FAVORABLY(LOCAL:1, "主人より高い")
+				LOCAL += 3
+			ELSEIF NTR_CHK_FAVORABLY(LOCAL:1, "うふふする程度")
+				LOCAL += 2
+			ELSEIF NTR_CHK_FAVORABLY(LOCAL:1, "奉仕する程度")
+				LOCAL += 1
+			ELSEIF NTR_CHK_FAVORABLY(LOCAL:1, "体を触らせる程度")
+				LOCAL += 1
+			ELSEIF NTR_CHK_FAVORABLY(LOCAL:1, "キスする程度")
+				LOCAL += 1
+			ELSE
+				LOCAL += 1
+			ENDIF
+		ENDIF
+	NEXT
+RETURNF LOCAL
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@VISITER_DO
+	;ハーレム可否チェック
+	CALL NTR_HARAM_ABLE
+	IF RESULT
+		CALL NTR_HARAM
+		RETURN 0
+	ENDIF
+	;誰かいないかチェック
+	FOR LOCAL,1,CHARANUM
+		SIF !GETBIT(TALENT:LOCAL:2,0)
+			CONTINUE
+		SIF CFLAG:LOCAL:睡眠
+			CONTINUE
+		IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置 && FLAG:訪問者の現在位置 != 900
+			;非恋慕住人が対象外のときスキップ
+			IF GETBIT(FLAG:ＮＴＲパッチ設定,24) && !TALENT:LOCAL:恋慕 && !TALENT:LOCAL:NTR
+				PRINTFORML %NTR_NAME(0)%は%CALLNAME:LOCAL%と挨拶程度に言葉を交わした。
+				CONTINUE
+			ENDIF
+			CFLAG:LOCAL:屈服度 += TIME_PROGRESS(TFLAG:300)
+			;好感度吸収あり
+			IF GETBIT(FLAG:ＮＴＲパッチ設定,1)
+				CFLAG:LOCAL:好感度 -= TIME_PROGRESS(TFLAG:300)
+				;訪問者からの脅迫度が高いと好感度吸収も大きい
+				IF CFLAG:LOCAL:屈服度 > 500 && CFLAG:LOCAL:好感度 > 2000
+					CFLAG:LOCAL:好感度 -= TIME_PROGRESS(TFLAG:300)
+				ENDIF
+				IF CFLAG:LOCAL:屈服度 > 1000 && CFLAG:LOCAL:好感度 > 3000
+					CFLAG:LOCAL:好感度 -= TIME_PROGRESS(TFLAG:300)
+				ENDIF
+			ENDIF
+			TRYCALL NTRPRINT_VISITOR_POINT(LOCAL)
+			;寝取られ寸前（デバッグ用）
+			;IF CFLAG:LOCAL:好感度 < 1000 && CFLAG:LOCAL:屈服度 > CFLAG:LOCAL:好感度 && TALENT:LOCAL:恋慕 
+			;	PRINTFORMW %CALLNAME:LOCAL%は陥落寸前だ…
+			;ENDIF
+			CALL VISITER_FRIENDSHIP(LOCAL)
+		ELSEIF CFLAG:LOCAL:現在位置 == 900 && FLAG:訪問者の現在位置 == 900
+			CALL VISITER_TAKEOUT(LOCAL)
+		ENDIF
+	NEXT
+	TRYCALL NTR_COM416
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;MASTER含め訪問者と同じ部屋に居る人数を返す
+;@param ARG:未使用
+@GET_N_WITH_VISITER(ARG)
+	#FUNCTION
+	LOCAL:1 = 0
+	FOR LOCAL,0,CHARANUM
+		IF FLAG:訪問者の現在位置 == CFLAG:LOCAL:現在位置
+			LOCAL:1 ++
+		ENDIF
+	NEXT
+RETURNF LOCAL:1
+
+;-------------------------------------------------------------------------------
+;部屋に居る人の属性の総和を返す
+;@param ARG:部屋
+;RESULT 1p1:妊娠 1p2:睡眠
+@GET_ATTRIBUTE_OF_PERSON_IN_ROOM(ARG)
+	#FUNCTION
+	LOCAL:1 = 0
+	FOR LOCAL,0,CHARANUM
+		IF ARG == CFLAG:LOCAL:現在位置
+			SIF CFLAG:LOCAL:にんっしんっ
+				LOCAL:1 |= 1p1
+			SIF CFLAG:LOCAL:睡眠
+				LOCAL:1 |= 1p2
+		ENDIF
+	NEXT
+RETURNF LOCAL:1
+
+;-------------------------------------------------------------------------------
+;デバッグプリント：住人の居場所
+;@param NoUse
+@DEBUGPRINT_あの人は何処に？()
+	FOR LOCAL,0,CHARANUM
+		DEBUGPRINTFORML %CALLNAME:LOCAL%は、{CFLAG:LOCAL:現在位置}：【%GETPLACENAME(CFLAG:LOCAL:現在位置)%】にいる。
+	NEXT
+	DEBUGPRINTFORML %NTR_NAME(0)%は、{FLAG:訪問者の現在位置}：【%GETPLACENAME(FLAG:訪問者の現在位置)%】にいる。
+RETURN
+
+;-------------------------------------------------------------------------------
+;住民を口説きます
+@VISITER_FRIENDSHIP(ARG)
+	;MASTER含め訪問者と同じ部屋に居る人数をLOCAL:2へ
+	LOCAL:2 = GET_N_WITH_VISITER(1)
+	IF LOCAL:2 == 2 && CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置
+		IF IS_AIR_MASTER(ARG) < FLAG:訪問者のムード
+			; MASTERによる「そこまでよ」
+			CALL NTR_RESET_VISITOR_ACTION(ARG)
+		ENDIF
+	ELSEIF LOCAL:2 > 1
+		; ハーレム判定に失敗しているので、多人数ならリセット
+		CALL NTR_RESET_VISITOR_ACTION(ARG)
+	ENDIF
+	;デバッグ用
+	;PRINTFORML 
+	;PRINTFORML ムード　　：{FLAG:訪問者のムード}
+	;PRINTFORML 終了時間　：{FLAG:訪問者との行為の終了時刻}
+	;PRINTFORML 行為　　　：{FLAG:訪問者との行為}
+	;PRINTFORML カウンター：{CFLAG:ARG:NTRカウンターセクハラ}
+	;PRINTFORML 
+	IF FLAG:訪問者のムード == 0
+		LOCAL:3 = 0
+		SELECTCASE FLAG:訪問者の現在位置
+				; 堂々とした場所：正門,広間,食堂,玄関
+			CASE 1,2,3,4,5,6,20,30,40,50,60
+				LOCAL:3 = 0
+				;あまり堂々としていない場所(正門, 広間, 食堂, 二階踊り場以外. 庭と湖はロマン)ならLOCAL:3を1に
+			CASE 8,15,9 ; 二階廊下, あなた私室, 大浴場
+				LOCAL:3 = 1
+				;さらに目立たない場所(死角のある場所や個室等…主観ですが)ならLOCAL:3を2に
+			CASE 7,14,16,17,23; 図書室, 厨房, 納屋, 庭,風穴
+				LOCAL:3 = 2
+			CASE 9,10,11,12,13,14,33,43,53,63; 個室
+				LOCAL:3 = 2
+			CASE 18,19 ; トイレ
+				LOCAL:3 = 2
+				; Lv1が少ない ;-(
+		ENDSELECT
+		;住民それぞれの私室ならLOCAL:3を3に
+		SIF IS_PRIVATE_ROOM(ARG, 1)
+			LOCAL:3 = 3
+		;条件を満たしていくと行動の選択肢が増える
+		LOCAL = 0
+		;訪問者と住民が二人きりまたは主人空気化（屈服度高いとき？）
+		IF LOCAL:2 == 1 || (LOCAL:2 == 2 && CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置 && IS_AIR_MASTER(ARG))
+			SIF NTR_CHK_FAVORABLY(ARG, "キスする程度")
+				LOCAL += 1
+			;堂々としていない場所
+			IF LOCAL:3 > 0
+				SIF NTR_CHK_FAVORABLY(ARG, "体を触らせる程度")
+					LOCAL += 1
+				;さらに目立たない場所または私室
+				IF LOCAL:3 >= 2
+					SIF NTR_CHK_FAVORABLY(ARG, "奉仕する程度")
+						LOCAL += 1
+					SIF NTR_CHK_FAVORABLY(ARG, "うふふする程度")
+						LOCAL += 1
+				ENDIF
+			ENDIF
+			SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+				LOCAL += 1
+			SIF CFLAG:ARG:屈服度 > 500
+				LOCAL += 1
+		ELSE
+			CALL NTR_RESET_VISITOR_ACTION(ARG)
+		ENDIF
+		LOCAL = MAX(1, LOCAL)
+		;NTRカウンター実行時それに応じる
+		IF CFLAG:ARG:NTRカウンターセクハラ
+			CALL NTR_COUNTER_COUNTER(ARG, LOCAL)
+			FLAG:訪問者のムード = RESULT
+			;覗きバレ後の行為エスカレート補正はNTR_COUNTER_COUNTER内で処理
+		ELSE
+			FLAG:訪問者のムード = RAND:LOCAL
+			;覗きバレ後は行為エスカレート
+			IF CFLAG:ARG:覗き発覚回数 && FLAG:訪問者のムード < 2
+				FLAG:訪問者のムード += 1
+			ENDIF
+		ENDIF
+	ENDIF
+	;好感度が高く、私室に居る場合は施錠
+	IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && LOCAL:3 >= 3 && IS_CAN_LOCK(FLAG:訪問者の現在位置)
+		;上で一時的に開錠してしまうのでこのメッセージが何度も出る。解決するまで保留
+		;IF !FLAG:(300 + CFLAG:ARG:現在位置) 
+		;	IF CAN_MOVE(CFLAG:MASTER:現在位置, FLAG:訪問者の現在位置) == 2 || GETBIT(FLAG:ＮＴＲパッチ設定,32)
+		;		PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%との一時を邪魔されぬよう【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】の扉の鍵をかけた。
+		;	ENDIF
+		;ENDIF
+		FLAG:(300 + CFLAG:ARG:現在位置) = 1
+	ENDIF
+	IF CFLAG:ARG:屈服度 < 100 || DAY < 2 || CFLAG:ARG:にんっしんっ > 0
+		; さほど親しくなければリセット
+		CALL NTR_RESET_VISITOR_ACTION(ARG)
+	ENDIF
+	; memo
+	; LOCAL:2…MASTER含め訪問者と同じ部屋に居る人数
+	; LOCAL:3…密室度(0:堂々／1:／2:個室／3:私室)
+	; GETBIT(FLAG:ＮＴＲパッチ設定,6)…お持ち帰りフラグ
+	;二人きりで寝取り返し寸前の時、1/2でバレて再教育
+	IF NTR_CHK_FAVORABLY(ARG, "寝取り返し寸前") && LOCAL:2 == 1 && GETBIT(FLAG:ＮＴＲパッチ設定,6) && RAND:2
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:ARG%の態度から、彼女をより快楽漬けにする必要があると考えた。
+		FLAG:再教育フラグ = 1
+		CALL VISITER_TAKINGOUT(ARG)
+		;
+		;お持ち帰り条件を満たしている（二人きり＆堂々とした場所＆キス許容以上のムード）
+		;会話の場合は、通常の分岐側に移動したよ。
+	ELSEIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && LOCAL:2 == 1 && LOCAL:3 == 0 && FLAG:訪問者のムード > 0 && GETBIT(FLAG:ＮＴＲパッチ設定,6)
+		;IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && LOCAL:2 == 1 && LOCAL:3 == 0 && FLAG:訪問者のムード > 0 && GETBIT(FLAG:ＮＴＲパッチ設定,6)
+		;好感度が"あなた"より高ければお持ち帰り
+		CALL VISITER_TAKINGOUT(ARG)
+		;その他の状態で行動中か行動が未決定(終了時間が0なら未決定とする)
+		;↓訪問者が待機（行動終了状態）の場合。
+	ELSEIF FLAG:訪問者との行為の終了時刻 == 0
+		LOCAL:4 = FLAG:訪問者のムード
+		; お持ち帰りフラグがない場合、ムードLv5は抑制する。;副作用が怖いのでローカル変数で。
+		SIF GETBIT(FLAG:ＮＴＲパッチ設定,6) == 0
+			LOCAL:4 = MIN(LOCAL:4, 4)
+		SELECTCASE LOCAL:4
+			CASE 0
+				; 行動選択→会話
+				IF CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置
+					;会話（主人同席）
+					CALL NTR_MESSAGE_1_1(ARG)
+					CALL NTR_RESET_VISITOR_ACTION(ARG)
+					TRYCALLLIST
+						FUNC NTR_KOJO_KW{ARG}_1
+						FUNC NTR_KOJO_KW_1(ARG)
+					ENDFUNC
+				ELSEIF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+					;会話（主人不在）
+					CALL NTR_MESSAGE_1_0(ARG)
+					CALL NTR_RESET_VISITOR_ACTION(ARG)
+					TRYCALLLIST 
+						FUNC NTR_KOJO_K{ARG}_1
+						FUNC NTR_KOJO_K_1(ARG)
+					ENDFUNC
+				ENDIF
+				CALL NTR_COUNTER(ARG)
+			CASE 1
+				; 行動選択→キス
+				CALL NTR_KISS(ARG)
+				CFLAG:ARG:NTRカウンターセクハラ = 0
+			CASE 2
+				; 行動選択→愛撫
+				;前回住人がNTRカウンターで胸を揉ませていた場合胸愛撫
+				IF CFLAG:ARG:NTRカウンターセクハラ == 8
+					CALL NTR_BUST_PET(ARG)
+					;前回住人がNTRカウンターでスカートの中身を見せていた場合愛撫
+				ELSEIF CFLAG:ARG:NTRカウンターセクハラ == 10
+					CALL NTR_PET(ARG)
+					;その他
+				ELSE
+					LOCAL = RAND:2
+					IF LOCAL == 0
+						;愛撫
+						CALL NTR_PET(ARG)
+					ELSE
+						;胸愛撫
+						CALL NTR_BUST_PET(ARG)
+					ENDIF
+				ENDIF
+				CFLAG:ARG:NTRカウンターセクハラ = 0
+			CASE 3
+				; 行動選択→奉仕
+				IF LOCAL:3 != 3  && CFLAG:ARG:現在位置 != 6
+					; 寝取られだと私室に誘う/ここぁは例外(メッセージが異なるため)
+					IF NTR_CHK_FAVORABLY(ARG, "寝取られ") && ARG != 7
+						FLAG:訪問者の現在位置 = GET_PRIVATE_ROOM(ARG, 1)
+						IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+							PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%を【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】に誘ったようだ
+						ENDIF
+						;寝取られ寸前、寝取られそうだと私室に誘う/ここぁは例外(メッセージが異なるため)
+					ELSEIF (NTR_CHK_FAVORABLY(ARG, "寝取られ寸前") || NTR_CHK_FAVORABLY(ARG, "寝取られそう")) && ARG != 7
+						FLAG:訪問者の現在位置 = GET_PRIVATE_ROOM(ARG, 1)
+						IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+							PRINTFORMW %CALLNAME:ARG%はこっそり%NTR_NAME(0)%を【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】に誘ったようだ
+						ENDIF
+						;そうでなければ納屋へ/ここぁは常にこっち
+					ELSE
+						FLAG:訪問者の現在位置 = 6
+						IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+							PRINTFORMW %NTR_NAME(0)%は%CALLNAME:ARG%を【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】に連れて行ったようだ
+						ENDIF
+					ENDIF
+					IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+						TRYCALLFORM NTR_KOJO_K{ARG}_11
+					ENDIF
+					CFLAG:ARG:現在位置 = FLAG:訪問者の現在位置
+					FLAG:訪問者滞在時間カウンタ = 0
+					;同行解除
+					CFLAG:ARG:同行 = 0
+				ENDIF
+				;前回住人がNTRカウンターで股間をまさぐっていた場合フェラチオ
+				IF CFLAG:ARG:NTRカウンターセクハラ == 9
+					CALL NTR_FELLATIO(ARG)
+					;前回住人がNTRカウンターでディープキスした場合フェラチオか69
+				ELSEIF CFLAG:ARG:NTRカウンターセクハラ == 11
+					IF RAND:2
+						CALL NTR_FELLATIO(ARG)
+					ELSE
+						CALL NTR_69(ARG)
+					ENDIF
+					;その他
+				ELSE
+					LOCAL = RAND:3
+					IF LOCAL == 0
+						CALL NTR_FELLATIO(ARG)
+					ELSEIF LOCAL == 1
+						CALL NTR_69(ARG)
+					ELSE
+						CALL NTR_THUG(ARG)
+					ENDIF
+				ENDIF
+				CFLAG:ARG:NTRカウンターセクハラ = 0
+			CASE 4
+				; 行動選択→性交(お持ち帰り抑制時も)に成功
+				IF LOCAL:3 != 3  && CFLAG:ARG:現在位置 != 6
+					;寝取られだと私室に誘う/ここぁは例外(メッセージが異なるため)
+					IF NTR_CHK_FAVORABLY(ARG, "寝取られ") && ARG != 7
+						FLAG:訪問者の現在位置 = GET_PRIVATE_ROOM(ARG, 1)
+						IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+							PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%を【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】に誘ったようだ
+						ENDIF
+						;寝取られ寸前、寝取られそうだと私室に誘う/ここぁは例外(メッセージが異なるため)
+					ELSEIF (NTR_CHK_FAVORABLY(ARG, "寝取られ寸前") || NTR_CHK_FAVORABLY(ARG, "寝取られそう")) && ARG != 7
+						FLAG:訪問者の現在位置 = GET_PRIVATE_ROOM(ARG, 1)
+						IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+							PRINTFORMW %CALLNAME:ARG%はこっそり%NTR_NAME(0)%を【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】に誘ったようだ
+						ENDIF
+						;そうでなければ納屋へ/ここぁは常にこっち
+					ELSE
+						FLAG:訪問者の現在位置 = 17
+						IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+							PRINTFORMW %NTR_NAME(0)%は%CALLNAME:ARG%を【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】に連れて行ったようだ
+						ENDIF
+					ENDIF
+					IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+						TRYCALLFORM NTR_KOJO_K{ARG}_11
+					ENDIF
+					CFLAG:ARG:現在位置 = FLAG:訪問者の現在位置
+					FLAG:訪問者滞在時間カウンタ = 0
+					;同行解除
+					CFLAG:ARG:同行 = 0
+				ENDIF
+				IF RAND:4 == 0 && EXP:ARG:Ａ経験 > 80
+					CALL NTR_A_SEX(ARG, LOCAL:3)
+				ELSE
+					CALL NTR_SEX(ARG, LOCAL:3)
+				ENDIF
+				CFLAG:ARG:NTRカウンターセクハラ = 0
+			CASE 5
+				; 行動選択→お持ち帰り
+				;好感度が"あなた"より高ければお持ち帰り
+				CALL VISITER_TAKINGOUT(ARG)
+		ENDSELECT
+		;↓訪問者が行動中（行動終了時刻に満たない）の場合。
+	ELSEIF FLAG:訪問者との行為の終了時刻 > TIME
+		SELECTCASE FLAG:訪問者との行為
+			CASE 1
+				CALL NTR_KISS(ARG)
+			CASE 2
+				CALL NTR_PET(ARG)
+			CASE 3
+				CALL NTR_BUST_PET(ARG)
+			CASE 4
+				CALL NTR_FELLATIO(ARG)
+			CASE 5
+				CALL NTR_69(ARG)
+			CASE 6
+				CALL NTR_THUG(ARG)
+			CASE 7 TO 13
+				CALL NTR_SEX(ARG, LOCAL:3)
+			CASE 14 TO 20
+				CALL NTR_A_SEX(ARG, LOCAL:3)
+		ENDSELECT
+		CFLAG:ARG:NTRカウンターセクハラ = 0
+		;↓訪問者が行動完了（行動終了時刻に到達した）の場合。
+	ELSE
+		;LOCAL:5…1:カウンターセクハラ実行 0:実行しない
+		SELECTCASE FLAG:訪問者との行為
+			CASE 1
+				CALL NTR_KISS_FINISH(ARG)
+				LOCAL:5 = 1
+			CASE 2
+				CALL NTR_PET_FINISH(ARG)
+			CASE 3
+				CALL NTR_BUST_PET_FINISH(ARG)
+			CASE 4
+				CALL NTR_FELLATIO_FINISH(ARG)
+			CASE 5
+				CALL NTR_69_FINISH(ARG)
+			CASE 6
+				CALL NTR_THUG_FINISH(ARG)
+			CASE 7 TO 13
+				CALL NTR_SEX_FINISH(ARG)
+			CASE 14 TO 20
+				CALL NTR_A_SEX_FINISH(ARG)
+		ENDSELECT
+		CALL NTR_RESET_VISITOR_ACTION(ARG)
+		CFLAG:ARG:NTRカウンターセクハラ = 0
+		IF LOCAL:5 == 1
+			CALL NTR_COUNTER(ARG)
+		ENDIF
+	ENDIF
+	TRYCALL NTRPRINT_VISITOR_STATE
+
+;-------------------------------------------------------------------------------
+;お持ち帰り最中
+@VISITER_TAKINGOUT(ARG)
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		PRINTFORMW %NTR_NAME(0)%に誘われ、%CALLNAME:ARG%はどこかへとついていった
+		TRYCALLLIST
+			FUNC NTR_KOJO_K{ARG}_10_0
+			FUNC NTR_KOJO_K_10_0(ARG)
+		ENDFUNC
+	ENDIF
+	;同行解除
+	CFLAG:ARG:同行 = 0
+	;現在位置を強制的に開錠
+	FLAG:(300 + FLAG:訪問者の現在位置) = 0
+	;訪問者宅へ移動
+	FLAG:訪問者の現在位置 = 900
+	CFLAG:ARG:現在位置 = 900
+	CALL NTR_RESET_VISITOR_ACTION(ARG)
+	FLAG:訪問者との汚れ判定に使用 = 0
+	FLAG:訪問者滞在時間カウンタ = 0
+	;	CLEARBIT CFLAG:ARG:LOCAL,0
+	;	CLEARBIT CFLAG:ARG:LOCAL,1
+	;	CLEARBIT CFLAG:ARG:LOCAL,2
+	CFLAG:ARG:NTRカウンターセクハラ = 0
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;お持ち帰り後
+@VISITER_TAKEOUT(奴隷)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM DYNAMIC 客の人数
+	#DIM DYNAMIC プレイ時間
+	#DIM DYNAMIC 浮気快楽強度
+	#DIM ムード上限値 = 50
+	#DIM プレイ内容
+	;一応処女喪失フラグリセット（複数回発生しちゃうので
+	CFLAG:奴隷:処女喪失中 = 0
+	;予約時間毎に何かする
+	;各種素質により毎ターン上乗せ。
+	FLAG:訪問者のムード += 1 * TALENT:奴隷:淫壺
+	FLAG:訪問者のムード += 1 * TALENT:奴隷:尻穴狂い
+	FLAG:訪問者のムード += 1 * TALENT:奴隷:淫乳
+	FLAG:訪問者のムード += 1 * TALENT:奴隷:浮気な唇
+	FLAG:訪問者のムード += 1 * TALENT:奴隷:浮気な蜜壷
+	FLAG:訪問者のムード += 1 * TALENT:奴隷:浮気な尻穴
+	FLAG:訪問者のムード += 2 * TALENT:奴隷:浮気癖
+	FLAG:訪問者のムード += 2 * TALENT:奴隷:淫乱
+	FLAG:訪問者のムード += 3 * TALENT:奴隷:NTR
+	FLAG:訪問者のムード += 4 * TALENT:奴隷:公衆便所
+	;予約時間になるまでは同じ行動
+	IF FLAG:訪問者との行為の終了時刻 > TIME
+		RETURN 0
+	ENDIF
+	;体力500未満の場合休息が与えられる
+	IF BASE:奴隷:体力 < 500
+		IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+			PRINTFORML %"ぐったりとして動かなくなった"+CALLNAME:奴隷+"に、僅かな休憩が与えられた。"%
+			;休息したらプレイ内容のリセット、ムード半減
+			プレイ内容 = 0
+			FLAG:訪問者のムード /= 2
+		ENDIF
+		;休憩は２時間程度。おそらく体力はマイナス行くので強制的に500まで回復。
+		FLAG:訪問者との行為の終了時刻 = TIME + 119
+		BASE:奴隷:体力 = LIMIT(BASE:奴隷:体力+119*2*(480-120*TALENT:奴隷:回復速度),500,MAXBASE:LOCAL:体力)
+		BASE:奴隷:気力 = LIMIT(BASE:奴隷:気力+119*2*(480-120*TALENT:奴隷:回復速度),500,MAXBASE:LOCAL:気力)
+		RETURN 0
+	ENDIF
+
+	IF FLAG:再教育フラグ == 1
+		;再教育モード
+		客の人数 = 0
+		FLAG:訪問者のムード = 50
+	ELSEIF TALENT:奴隷:公衆便所 && CFLAG:奴隷:持帰分岐 > 0
+		;プレイの指定がある場合、口上の都合で相手は１人。多分貸切にしてるのだろう。
+		客の人数 = 1
+	ELSEIF TALENT:奴隷:公衆便所
+		;プレイの指定が無い場合は客を0～3人取る。淫乱/娼婦なら人数が増えやすくなる。
+		客の人数 = LIMIT(RAND:(4+TALENT:奴隷:淫乱),0,3)
+	ENDIF
+	;客がいれば調教者は客(999)、いなければ訪問者(998)
+	調教者 = (客の人数>0) ? 999 # 998
+	;ムードが悪い時は帰る
+	IF FLAG:訪問者のムード < 0
+		CFLAG:奴隷:現在位置 = 1
+		IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+			TRYCALL 客口上, 奴隷, 0
+			PRINTFORMW %CALLNAME:奴隷%がどこかから帰ってきたようだ
+			;TRYCALLFORM NTR_KOJO_K{奴隷}_10_0
+			TRYCALLFORM NTR_KOJO_K{奴隷}_0
+		ENDIF
+	ENDIF
+	IF FLAG:訪問者のムード < 10
+		;会話(好感度上昇のみ)
+		プレイ内容 = 1
+		プレイ時間 = (RAND:5 + 5)
+		CALL VISITOR_TAKEOUT_10_01(奴隷)
+	ELSEIF FLAG:訪問者のムード < 20
+		;キス
+		プレイ内容 = 2
+		プレイ時間 = (RAND:5 + 5)
+		CALL VISITOR_TAKEOUT_10_02(奴隷)
+	ELSEIF FLAG:訪問者のムード < 30
+		;色々前戯 シックスナインイメージ
+		プレイ内容 = 3
+		プレイ時間 = (RAND:5 + 5)
+		CALL VISITOR_TAKEOUT_10_03(奴隷)
+	ELSE
+		;プレイ時間が確定(30～59分)
+		プレイ時間 = (RAND:30 + 30)
+		;プレイ時間により屈服度が増加
+		CFLAG:奴隷:屈服度 += MAX(プレイ時間/10,0)
+		IF FLAG:訪問者のムード > 44 && プレイ内容 > 3
+			;ムード45以上かつ、１回はプレイ内容４（射精無しセックス）してること
+			プレイ内容 = 5
+		ELSE
+			プレイ内容 = 4
+		ENDIF
+		SELECTCASE 客の人数
+			CASE 1
+				;一人であれば必ずＶ（持帰分岐時の都合でＶ以外とは合わない）、１人で３部位相手にするのでプレイ時間は1/3。
+				TFLAG:輪姦内容 = 0
+				CALL NTR_Play_B_0(奴隷,調教者,プレイ内容-4,プレイ時間*1/3)
+				CALL NTR_Play_C_0(奴隷,調教者,プレイ内容-4,プレイ時間*1/3)
+				SELECTCASE CFLAG:奴隷:持帰分岐
+					CASE 1,100 ;Ｓプレイ(咲夜、レミリア)、撮影(大妖精)、騎乗位
+						CALL NTR_Play_V_2(奴隷,調教者,プレイ内容-4,プレイ時間*1/3)
+					CASE 2 ;犬プレイ(咲夜)、Ｍプレイ(レミリア)、後背位
+						CALL NTR_Play_V_1(奴隷,調教者,プレイ内容-4,プレイ時間*1/3)
+					CASE 3 ;種付けプレイ(咲夜）、正常位
+						CALL NTR_Play_V_0(奴隷,調教者,プレイ内容-4,プレイ時間*1/3)
+					CASEELSE ;該当なしならとりあえず正常位
+						CALL NTR_Play_V_0(奴隷,調教者,プレイ内容-4,プレイ時間*1/3)
+				ENDSELECT
+			CASE 2
+				;二人いるときは２穴使用。２人で４部位相手にするのでプレイ時間は2/4で。
+				IF EXP:奴隷:Ｖ拡張経験 > 49 && RAND:5 == 0
+					TFLAG:輪姦内容 = 10 ;Ｖ２本挿入、イメージ的に対面座位+背面座位
+					CALL NTR_Play_B_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_C_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_V_3(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_V_4(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+				ELSEIF EXP:奴隷:Ａ拡張経験 > 49 && RAND:4 == 0
+					TFLAG:輪姦内容 = 11 ;Ａ２本挿入、イメージ的に対面座位+背面座位
+					CALL NTR_Play_B_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_C_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_A_3(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_A_4(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+				ELSEIF RAND:3 == 0
+					TFLAG:輪姦内容 = 3 ;ＶＡ挿入、イメージ的にＶ対面座位+Ａ背面座位
+					CALL NTR_Play_B_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_C_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_V_3(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_A_4(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+				ELSEIF RAND:2 == 0
+					TFLAG:輪姦内容 = 1 ;ＭＶ、イメージ的にＶ後背位
+					CALL NTR_Play_B_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_C_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_M_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_V_1(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+				ELSE
+					TFLAG:輪姦内容 = 2 ;ＭＶ、イメージ的にＡ後背位
+					CALL NTR_Play_B_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_C_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_M_0(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+					CALL NTR_Play_A_1(奴隷,調教者,プレイ内容-4,プレイ時間*2/4)
+				ENDIF
+			CASE 3
+				;３人で５部位相手にするのでプレイ時間は3/5で。
+				TFLAG:輪姦内容 = 20 ; イメージ的にＶ騎乗位、Ａ後背位……かな。
+				CALL NTR_Play_B_0(奴隷,調教者,プレイ内容-4,プレイ時間*3/5)
+				CALL NTR_Play_C_0(奴隷,調教者,プレイ内容-4,プレイ時間*3/5)
+				CALL NTR_Play_M_0(奴隷,調教者,プレイ内容-4,プレイ時間*3/5)
+				CALL NTR_Play_A_1(奴隷,調教者,プレイ内容-4,プレイ時間*3/5)
+				CALL NTR_Play_V_2(奴隷,調教者,プレイ内容-4,プレイ時間*3/5)
+			CASEELSE
+				;客がいない時は訪問者の相手。一人で全部位相手にするのでプレイ時間は1/5で。
+				TFLAG:輪姦内容 = -1 ;プレイイメージがいまいち掴めぬ……ランダムにしとこう
+				CALL NTR_Play_B_0(奴隷,調教者,プレイ内容-4,プレイ時間/5)
+				CALL NTR_Play_C_0(奴隷,調教者,プレイ内容-4,プレイ時間/5)
+				CALLFORM NTR_Play_A_{RAND:4}(奴隷,調教者,プレイ内容-4,プレイ時間/5)
+				CALLFORM NTR_Play_V_{RAND:4}(奴隷,調教者,プレイ内容-4,プレイ時間/5)
+				CALL NTR_Play_M_0(奴隷,調教者,プレイ内容-4,プレイ時間/5)
+		ENDSELECT
+		;公衆便所で客とのプレイは売春としてカウント(訪問者は金を払ってない設定)
+		EXP:奴隷:売春経験 += (調教者 == 999 && TALENT:奴隷:公衆便所 > 0)
+	ENDIF
+	;プレイ時間を反映
+	FLAG:訪問者との行為の終了時刻 = TIME + プレイ時間
+	;絶頂判定
+	CALL NTR_SOURCE_CHECK(奴隷,調教者)
+	CALL ORGASM_ADD(奴隷,調教者)
+	;ORGASM_ADDを呼んだ直後なら R で本来の快楽強度が取得できる
+	;訪問者なら最大LV12まで、客の場合6までとする。
+	浮気快楽強度 = (調教者 == 998) ? R # R/2
+	;口上呼び出し
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		CALLFORM NTR_MESSAGE_10_{プレイ内容},奴隷,TFLAG:輪姦内容
+		IF 客の人数
+			TRYCALL 客口上,奴隷,プレイ内容
+		ENDIF
+		TRYCALLLIST
+			FUNC NTR_KOJO_K{奴隷}_10_{プレイ内容}
+			FUNC 客汎用地の文,奴隷,プレイ内容
+		ENDFUNC
+	ENDIF
+	IF MARK:奴隷:浮気快楽刻印 < 浮気快楽強度
+		IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+			PRINTFORML %CALLNAME:奴隷+"は"+CALLNAME:MASTER+"とのセックスでは得られなかった激しい快楽で朦朧としている……"%
+			SETCOLOR 0xE6399B
+			PRINTFORML %CALLNAME:奴隷+"は浮気快楽刻印LV"+TOSTR(浮気快楽強度)+"を得た"%
+			RESETCOLOR
+			TRYCALLFORM  NTR_KOJO_K{奴隷}_MARK_5,浮気快楽強度
+		ENDIF
+		MARK:奴隷:浮気快楽刻印 = 浮気快楽強度
+	ENDIF
+	IF CFLAG:奴隷:処女喪失中
+		;口上との兼ね合いでこの位置で確認
+		TRYCALL COM417_Lost_Virgin(奴隷,調教者)
+		;処女を奪われるとムードがごっそり減る
+		FLAG:訪問者のムード /= 2
+	ENDIF
+	;ムードの上下。最初のベース増加で0～19程度増えるので特別な判定はしない。
+	;NTR、公衆便所あたりがあれば減る事はない。快楽によりムード増加。上限以上あれば上限値に切り詰め。
+	FLAG:訪問者のムード += MIN(ムード上限値,FLAG:訪問者のムード+(RAND:13 - 4)+浮気快楽強度)
+	;行為における口上や射精関連のフラグリセット
+	TFLAG:輪姦内容 = -1
+	;処女喪失口上が何度も出るのを防止
+	CFLAG:奴隷:処女喪失中 = 0
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;お持ち帰り中のプレイ：会話
+;@param ARG:0 持ち帰られたキャラクター
+;@return 1:成功 0:失敗
+@VISITOR_TAKEOUT_10_01(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	BASE:奴隷:気力 -= 10
+	CFLAG:奴隷:屈服度 += 1
+	SIF EXP:奴隷:NTR陥落経験 
+		CFLAG:奴隷:屈服度 += 1
+	;好感度吸収
+	SIF GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 5
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;お持ち帰り中のプレイ：キス
+;@param ARG:0 持ち帰られたキャラクター
+;@return 1:成功 0:失敗
+@VISITOR_TAKEOUT_10_02(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	CFLAG:奴隷:屈服度 += 2 + (EXP:奴隷:NTR陥落経験>0)
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な唇
+	BASE:奴隷:気力 -= 80
+	SOURCE:奴隷:情愛 = 50
+	SOURCE:奴隷:性行動 = 10
+	SOURCE:奴隷:屈従 = 10
+	SOURCE:奴隷:逸脱 = 10
+	SOURCE:奴隷:反感 = 10 * !TALENT:奴隷:浮気な唇
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 10
+	EXP:奴隷:キス経験 ++
+	EXP:奴隷:浮気キス経験 ++
+	;好感度吸収
+	SIF GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 10
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;お持ち帰り中のプレイ：愛撫（69）
+;@param 奴隷       愛撫されるキャラ
+;@param 調教者     愛撫するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@VISITOR_TAKEOUT_10_03(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	FLAG:訪問者との行為の終了時刻 = TIME + 10
+	CFLAG:奴隷:屈服度 += 3
+	SIF EXP:奴隷:NTR陥落経験 
+		CFLAG:奴隷:屈服度 += 1
+	BASE:奴隷:体力 -= 20
+	BASE:奴隷:気力 -= 160
+	SOURCE:奴隷:快Ｃ = 100
+	SOURCE:奴隷:情愛 = 100
+	SOURCE:奴隷:性行動 = 450
+	SOURCE:奴隷:達成 = 200
+	SOURCE:奴隷:液体 = 80
+	SOURCE:奴隷:露出 = 100
+	SOURCE:奴隷:屈従 = 800
+	SOURCE:奴隷:逸脱 = 600
+	SOURCE:奴隷:反感 = 600
+	SOURCE:奴隷:快Ｖ += 60 + 60*(TALENT:処女==0)
+	SOURCE:奴隷:苦痛 += 15 +  5*(TALENT:処女>0)
+	SOURCE:奴隷:露出 += 10 + 20*(TALENT:処女>0)
+	SOURCE:奴隷:逸脱 += 20 + 10*(TALENT:処女>0)
+	SOURCE:奴隷:反感 += 20 + 10*(TALENT:処女>0)
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 800
+	SETBIT STAIN:奴隷:口,1
+	EXP:奴隷:口淫経験 ++
+	EXP:奴隷:浮気口淫経験 ++
+	EXP:奴隷:嗜虐快楽経験 += TALENT:奴隷:猫舌
+	;好感度吸収
+	SIF GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 30
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：クリ愛撫
+;@param 奴隷       愛撫されるキャラ
+;@param 調教者     愛撫するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_C_0(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 1 * (EXP:奴隷:NTR陥落経験>0)
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 5 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 50 * (プレイ時間/5)
+	;調教ソースの増加。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:歓楽   += 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   += 100 * (プレイ時間/5)
+	SOURCE:奴隷:欲情   += 150 * (プレイ時間/5)
+	SOURCE:奴隷:露出   += 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   += 370 * (プレイ時間/5)
+	SOURCE:奴隷:快Ｃ   += 100 * (プレイ時間/5)
+	SOURCE:奴隷:受動   += (145+270*ABL:奴隷:従順) * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 20
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 10
+	ENDIF
+	射精 = 0
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：胸愛撫
+;@param 奴隷       愛撫されるキャラ
+;@param 調教者     愛撫するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_B_0(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 1 * (EXP:奴隷:NTR陥落経験>0)
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 5 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 50 * (プレイ時間/5)
+	;調教ソースの増加。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ｂ   += 120 * (プレイ時間/5)
+	SOURCE:奴隷:歓楽   += 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   += 150 * (プレイ時間/5)
+	SOURCE:奴隷:欲情   += 170 * (プレイ時間/5)
+	SOURCE:奴隷:露出   +=  70 * (プレイ時間/5)
+	SOURCE:奴隷:反感   += 350 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 20
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 10
+	ENDIF
+	射精 = 0
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：フェラチオ
+;@param 奴隷       フェラチオさせられキャラ
+;@param 調教者     フェラチオさせるキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_M_0(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な唇がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な唇
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 10 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 100 * (プレイ時間/5)
+	;調教ソースの増加。浮気な唇により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:情愛   +=  100 * (TALENT:奴隷:浮気な唇 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:性行動 +=  300 * (TALENT:奴隷:浮気な唇 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:達成   +=  150 * (TALENT:奴隷:浮気な唇 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:屈従   +=  700 * (TALENT:奴隷:浮気な唇 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   +=  200 * (TALENT:奴隷:浮気な唇 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   66 * (TALENT:奴隷:浮気な唇 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 400
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が増える
+	SIF CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 200
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_M(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_M(奴隷,調教者,(射精 && (ABL:奴隷:舌 > RAND:5)))
+	NEXT
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ａ正常位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_A_0(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な尻穴がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な尻穴
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 80 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 120 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な尻穴により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ａ   +=  400 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   +=  100 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   +=  800 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:露出   +=   60 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:逸脱   +=  200 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   +=  500 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 500
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が一気に増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1500
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_A(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_A(奴隷,調教者,(射精 && (ABL:奴隷:アナル > RAND:5)))
+	NEXT
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ａ後背位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_A_1(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な尻穴がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な尻穴
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 80 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 120 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な尻穴により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ａ   +=  400 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   +=  100 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   +=  900 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:露出   +=   80 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:逸脱   +=  200 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   +=  500 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 500
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が一気に増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1500
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_A(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_A(奴隷,調教者,(射精 && (ABL:奴隷:アナル > RAND:5)))
+	NEXT
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ａ騎乗位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_A_2(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な尻穴がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な尻穴
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 80 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 200 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な尻穴により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ａ   +=  500 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   +=  250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:性行動 +=  250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:達成   +=  250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   +=  800 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:露出   +=  120 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:逸脱   +=  700 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   +=  900 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 900
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が一気に増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1500
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_A(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_A(奴隷,調教者,(射精 && (ABL:奴隷:アナル > RAND:5)))
+	NEXT
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ａ対面座位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_A_3(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な尻穴がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な尻穴
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 70 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 150 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な尻穴により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ｃ   +=  250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:快Ａ   +=  350 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   +=  250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:性行動 +=  250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:達成   +=  250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   +=  800 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:露出   +=  120 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:逸脱   +=  700 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   +=  900 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 900
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が一気に増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1500
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_A(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_A(奴隷,調教者,(射精 && (ABL:奴隷:アナル > RAND:5)))
+	NEXT
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ａ背面座位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_A_4(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な尻穴がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な尻穴
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 80 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 200 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な尻穴により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ａ   += 500 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   += 250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:性行動 += 250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:達成   += 250 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   += 800 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:露出   += 120 * (TALENT:奴隷:浮気な尻穴 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:逸脱   += 700 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   += 900 * (TALENT:奴隷:浮気な尻穴 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=  60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 900
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が一気に増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1500
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_A(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_A(奴隷,調教者,(射精 && (ABL:奴隷:アナル > RAND:5)))
+	NEXT
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ｖ正常位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_V_0(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な蜜壷がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な蜜壷
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 50 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 100 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な蜜壺により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ｖ   +=  400 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   +=  150 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   +=  500 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:露出   +=   50 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   +=  300 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 300
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1000
+	;処女であれば苦痛が増加
+	IF TALENT:奴隷:処女 == 1
+		SOURCE:奴隷:苦痛 += 2000
+		SOURCE:奴隷:反感 += 3000
+	ELSEIF TALENT:奴隷:処女 == 2
+		SOURCE:奴隷:苦痛 += 500
+		SOURCE:奴隷:反感 += 1000
+	ENDIF
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_V(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_V(奴隷,調教者,(射精 && (ABL:奴隷:膣 > RAND:5)))
+	NEXT
+	;ABL:奴隷:Ｖ感覚
+	;ABL:奴隷:膣
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ｖ後背位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_V_1(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な蜜壷がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な蜜壷
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 50 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 100 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な蜜壺により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ｖ   +=  400 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   +=  150 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   +=  400 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:露出   +=   70 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   +=  300 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 300
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1000
+	;処女であれば苦痛が増加
+	IF TALENT:奴隷:処女 == 1
+		SOURCE:奴隷:苦痛 += 2000
+		SOURCE:奴隷:反感 += 3000
+	ELSEIF TALENT:奴隷:処女 == 2
+		SOURCE:奴隷:苦痛 += 500
+		SOURCE:奴隷:反感 += 1000
+	ENDIF
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_V(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_V(奴隷,調教者,(射精 && (ABL:奴隷:膣 > RAND:5)))
+	NEXT
+	;ABL:奴隷:Ｖ感覚
+	;ABL:奴隷:膣
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ｖ騎乗位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_V_2(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な蜜壷がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な蜜壷
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 60 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 150 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な蜜壺により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ｖ   +=  500 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   +=  250 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:性行動 +=  250 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:達成   +=  250 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   +=  500 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:露出   +=  120 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:逸脱   +=  600 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   +=  800 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 800
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1000
+	;処女であれば苦痛が増加
+	IF TALENT:奴隷:処女 == 1
+		SOURCE:奴隷:苦痛 += 2000
+		SOURCE:奴隷:反感 += 3000
+	ELSEIF TALENT:奴隷:処女 == 2
+		SOURCE:奴隷:苦痛 += 500
+		SOURCE:奴隷:反感 += 1000
+	ENDIF
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_V(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_V(奴隷,調教者,(射精 && (ABL:奴隷:膣 > RAND:5)))
+	NEXT
+	;ABL:奴隷:Ｖ感覚
+	;ABL:奴隷:膣
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ｖ対面座位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_V_3(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な蜜壷がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な蜜壷
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 50 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 100 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な蜜壺により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ｖ   +=  350 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:快Ｃ   +=  250 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   +=  350 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   +=  500 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:恭順   +=  300 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:逸脱   +=  500 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   += 1000 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 900
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1000
+	;処女であれば苦痛が増加
+	IF TALENT:奴隷:処女 == 1
+		SOURCE:奴隷:苦痛 += 2000
+		SOURCE:奴隷:反感 += 3000
+	ELSEIF TALENT:奴隷:処女 == 2
+		SOURCE:奴隷:苦痛 += 500
+		SOURCE:奴隷:反感 += 1000
+	ENDIF
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_V(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_V(奴隷,調教者,(射精 && (ABL:奴隷:膣 > RAND:5)))
+	NEXT
+	;ABL:奴隷:Ｖ感覚
+	;ABL:奴隷:膣
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+;-------------------------------------------------------------------------------
+;データがない相手とのプレイ：Ｖ背面座位
+;@param 奴隷       挿入されるキャラ
+;@param 調教者     挿入するキャラ（998で訪問者、999で客）
+;@param 射精       1だと判定によっては射精が発生する
+;@param プレイ時間 プレイにかけた時間
+;@return 1:射精された 0:射精されてない
+@NTR_Play_V_4(奴隷,調教者=998,射精=0,プレイ時間)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	#DIM プレイ時間
+	;NTR陥落経験があれば屈服度が増加
+	CFLAG:奴隷:屈服度 += 2 * (EXP:奴隷:NTR陥落経験>0)
+	;浮気な蜜壷がある場合は屈服度が増加
+	CFLAG:奴隷:屈服度 += TALENT:奴隷:浮気な蜜壷
+	;体力、気力の減少
+	BASE:奴隷:体力 -= 50 * (プレイ時間/5)
+	BASE:奴隷:気力 -= 100 * (プレイ時間/5)
+	;ちょいとチートだが潤滑は追加
+	PALAM:奴隷:潤滑 = PALAMLV:4
+	;調教ソースの増加。浮気な蜜壺により変化。通常プレイが５分毎なのでその分乗算する
+	SOURCE:奴隷:快Ｃ   +=  250 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:快Ｖ   +=  350 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:快Ｂ   +=  250 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:情愛   +=  350 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:苦痛   +=  400 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:露出   +=  200 * (TALENT:奴隷:浮気な蜜壷 ? 150 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:逸脱   +=  600 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:反感   += 1000 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	SOURCE:奴隷:不潔   +=   60 * (TALENT:奴隷:浮気な蜜壷 ?  66 # 100) / 100 * (プレイ時間/5)
+	;抑圧 or 抵抗があると鬱屈が溜まる
+	SIF TALENT:奴隷:自己愛 < 0 || TALENT:奴隷:抵抗
+		SOURCE:奴隷:鬱屈 += 800
+	;貞操観念があり、訪問者への屈服度があなたの好感度より低い場合反感が増える
+	SIF TALENT:奴隷:貞操 > 0 && CFLAG:奴隷:屈服度 < CFLAG:奴隷:好感度
+		SOURCE:奴隷:反感 += 1000
+	;処女であれば苦痛が増加
+	IF TALENT:奴隷:処女 == 1
+		SOURCE:奴隷:苦痛 += 2000
+		SOURCE:奴隷:反感 += 3000
+	ELSEIF TALENT:奴隷:処女 == 2
+		SOURCE:奴隷:苦痛 += 500
+		SOURCE:奴隷:反感 += 1000
+	ENDIF
+	;口上との整合性を取るため、射精指定があれば最低１回の射精を確保
+	CALL NTR_Insert_V(奴隷,調教者,射精)
+	;以降はプレイ時間と技能の判定により射精回数を確保
+	FOR LOCAL:0,10,プレイ時間,10
+		CALL NTR_Insert_V(奴隷,調教者,(射精 && (ABL:奴隷:膣 > RAND:5)))
+	NEXT
+	;ABL:奴隷:Ｖ感覚
+	;ABL:奴隷:膣
+	;調教者が訪問者であれば、好感度吸収
+	IF 調教者==998 && GETBIT(FLAG:ＮＴＲパッチ設定,1)
+		CFLAG:奴隷:好感度 -= 50
+	ENDIF
+RETURN 射精
+
+
+;-------------------------------------------------------------------------------
+;口を使う場合の判定（共通）
+@NTR_Insert_M(奴隷,調教者,射精)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	EXP:奴隷:口淫経験 ++
+	EXP:奴隷:浮気口淫経験 ++
+	IF 射精
+		TRYCALL 精力取得,調教者
+		EXP:奴隷:精飲経験 += MIN(TFLAG:精子量/100,1)
+		EXP:奴隷:浮気精飲経験 += MIN(TFLAG:精子量/100,1)
+		SETBIT STAIN:奴隷:口,2
+		SETBIT FLAG:訪問者との汚れ判定に使用,2
+		CFLAG:奴隷:射精者 = 調教者
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;Ａを使う場合の判定（共通）
+@NTR_Insert_A(奴隷,調教者,射精)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	EXP:奴隷:Ａ経験 ++
+	EXP:奴隷:Ａ性交経験 ++
+	EXP:奴隷:浮気Ａ性交経験 ++
+	;汚れの付与
+	SETBIT STAIN:奴隷:Ａ,1
+	SETBIT STAIN:奴隷:腸内,1
+	IF 射精
+		TRYCALL 精力取得,調教者
+		EXP:奴隷:精液経験 += MIN(TFLAG:精子量/100,1)
+		EXP:奴隷:浮気精液経験 += MIN(TFLAG:精子量/100,1)
+		SETBIT STAIN:奴隷:Ａ,2
+		SETBIT STAIN:奴隷:腸内,2
+		SETBIT FLAG:訪問者との汚れ判定に使用,2
+		CFLAG:奴隷:射精者 = 調教者
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;Ｖを使う場合の判定（共通）
+@NTR_Insert_V(奴隷,調教者,射精)
+	#DIM 奴隷
+	#DIM 調教者
+	#DIM 射精
+	EXP:奴隷:Ｖ経験 ++
+	EXP:奴隷:Ｖ性交経験 ++
+	EXP:奴隷:浮気Ｖ性交経験 ++
+	IF TALENT:奴隷:処女
+		;処女であれば破瓜
+		SETBIT STAIN:奴隷:Ｖ,6
+		SETBIT STAIN:奴隷:膣内,6
+		CFLAG:奴隷:処女喪失中 = 1
+		TALENT:奴隷:処女 = 0
+	ENDIF
+	IF 射精
+		TRYCALL 精力取得,調教者
+		EXP:奴隷:精液経験 += MIN(TFLAG:精子量/100,1)
+		EXP:奴隷:浮気精液経験 += MIN(TFLAG:精子量/100,1)
+		TRYCALL 精子取得,調教者,奴隷
+		SETBIT STAIN:奴隷:Ｖ,2
+		SETBIT STAIN:奴隷:膣内,2
+		SETBIT FLAG:訪問者との汚れ判定に使用,2
+		CFLAG:奴隷:射精者 = 調教者
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;ハーレムイベント関連
+;同一箇所に屈服度>好意度な住人だけがいる時のnPイベント
+;ハーレムイベント可否判定
+@NTR_HARAM_ABLE
+	;主人がいるとNG
+	SIF CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置
+		RETURN 0
+	LOCAL:1 = 0
+	FOR LOCAL,1,CHARANUM
+		;訪問者と同じ場所にいる住人についてチェック
+		IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置
+			;主人より好意度が高くないとNG
+			SIF CFLAG:LOCAL:屈服度 <= CFLAG:LOCAL:好感度
+				RETURN 0
+			;非恋慕住人が対象外のときNG
+			SIF GETBIT(FLAG:ＮＴＲパッチ設定,24) && !TALENT:LOCAL:恋慕 && !TALENT:LOCAL:NTR
+				RETURN 0
+			LOCAL:1 ++
+		ENDIF
+	NEXT
+	;2人以上必要
+	SIF LOCAL:1 <= 1
+		RETURN 0
+	;確率で失敗
+	;	RETURN 0
+	IF FLAG:30 == 0
+		FLAG:30 = 1
+	ENDIF
+	SIF RAND:3 
+		RETURN 0
+	IF FLAG:ハーレム時カウンタ == 0
+		FLAG:ハーレム時カウンタ = 1
+	ENDIF
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;ハーレムイベント
+;基本はVISITER_FRIENDSHIPと同じ。同時に多人数相手。
+@NTR_HARAM
+	IF FLAG:ハーレム時カウンタ == 1
+		FOR LOCAL,1,CHARANUM
+			CFLAG:LOCAL:NTRハーレム行為種別 = 0
+			CFLAG:LOCAL:NTR汚れ = 0
+			CFLAG:LOCAL:NTR訪問者との行為 = 0
+		NEXT
+		LOCAL:3 = 0
+		SELECTCASE FLAG:訪問者の現在位置
+				; 堂々とした場所：正門,広間,食堂,玄関
+			CASE 1,2,3,4,5,6,20,30,40,50,60
+				LOCAL:3 = 0
+				;あまり堂々としていない場所(正門, 広間, 食堂, 二階踊り場以外. 庭と湖はロマン)ならLOCAL:3を1に
+			CASE 8,15,9 ; 二階廊下, あなた私室, 大浴場
+				LOCAL:3 = 1
+				;さらに目立たない場所(死角のある場所や個室等…主観ですが)ならLOCAL:3を2に
+			CASE 7,14,16,17,23; 図書室, 厨房, 納屋, 庭,風穴
+				LOCAL:3 = 2
+			CASE 9,10,11,12,13,14,33,43,53,63; 個室
+				LOCAL:3 = 2
+			CASE 18,19 ; トイレ
+				LOCAL:3 = 2
+		ENDSELECT
+		;条件を満たしていくと行動の選択肢が増える
+		LOCAL:4 = 0
+		FOR LOCAL,1,CHARANUM
+			CFLAG:LOCAL:NTRハーレム行為種別 = 0
+			;訪問者と同じ場所にいる住人についてチェック
+			IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置
+				;SIF CFLAG:LOCAL:屈服度 > CFLAG:LOCAL:好感度 / 4
+				SIF NTR_CHK_FAVORABLY(LOCAL, "キスする程度")
+					LOCAL:4 += 1
+				;堂々としていない場所
+				IF LOCAL:3 > 0
+					;SIF CFLAG:LOCAL:屈服度 > CFLAG:LOCAL:好感度 / 3
+					SIF NTR_CHK_FAVORABLY(LOCAL, "体を触らせる程度")
+						LOCAL:4 += 1
+					;さらに目立たない場所または私室
+					IF LOCAL:3 >= 2
+						;SIF CFLAG:LOCAL:屈服度 > CFLAG:LOCAL:好感度 / 2
+						SIF NTR_CHK_FAVORABLY(LOCAL, "奉仕する程度")
+							LOCAL:4 += 1
+						;SIF CFLAG:LOCAL:屈服度 > CFLAG:LOCAL:好感度 * 3 / 4
+						SIF NTR_CHK_FAVORABLY(LOCAL, "うふふする程度")
+							LOCAL:4 += 1
+					ENDIF
+				ENDIF
+				SIF CFLAG:LOCAL:屈服度 > CFLAG:LOCAL:好感度
+					LOCAL:4 += 1
+				SIF LOCAL:4 == 0
+					LOCAL:4 += 1
+				;ハーレム時さらに+1
+				CFLAG:LOCAL:NTRハーレム行為種別 = RAND:(LOCAL:4) + 1
+			ENDIF
+		NEXT
+		;ハーレム状態の時の施錠処理を外す
+		;IF !FLAG:(300 + FLAG:訪問者の現在位置)
+		;	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		;		PRINTFORMW %NTR_NAME(0)%のハーレム状態のため【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】に入りづらくなった。
+		;	ENDIF
+		;ENDIF
+		;FLAG:(300 + FLAG:訪問者の現在位置) = 1
+		FLAG:ハーレム時カウンタ ++
+	ENDIF
+	;全員に対して実行
+	FOR LOCAL,1,CHARANUM
+		;訪問者と同じ場所にいる住人について処理
+		IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置
+			;好感度変化
+			CFLAG:LOCAL:屈服度 += MIN(TIME_PROGRESS(TFLAG:300), 0) + RAND:2 + 1
+			;好感度吸収あり
+			SIF GETBIT(FLAG:ＮＴＲパッチ設定,1)
+				CFLAG:LOCAL:好感度 -= MIN(TIME_PROGRESS(TFLAG:300), 0) + RAND:2 + 1
+			;訪問者からの脅迫度が高いと好感度吸収も大きい
+			IF CFLAG:LOCAL:屈服度 > 500 && CFLAG:LOCAL:好感度 > 2000
+				CFLAG:LOCAL:好感度 -= MIN(TIME_PROGRESS(TFLAG:300), 0) + RAND:2 + 1
+			ENDIF
+			IF CFLAG:LOCAL:屈服度 > 1000 && CFLAG:LOCAL:好感度 > 3000
+				CFLAG:LOCAL:好感度 -= MIN(TIME_PROGRESS(TFLAG:300), 0) + RAND:2 + 1
+			ENDIF
+			;その他の状態で行動中か行動が未決定(終了時間が0なら未決定とする)
+			IF CFLAG:LOCAL:NTR汚れ == 0
+				FLAG:訪問者との行為の終了時刻 = 0
+				IF CFLAG:LOCAL:NTRハーレム行為種別 == 0 || CFLAG:LOCAL:NTRハーレム行為種別 == 1
+					CALL NTR_KISS(LOCAL)
+				ELSEIF CFLAG:LOCAL:NTRハーレム行為種別 == 2
+					LOCAL:4 = RAND:2
+					IF LOCAL:4 == 0
+						CALL NTR_PET(LOCAL)
+					ELSE
+						CALL NTR_BUST_PET(LOCAL)
+					ENDIF
+				ELSEIF CFLAG:LOCAL:NTRハーレム行為種別 == 3
+					LOCAL:4 = RAND:3
+					IF LOCAL:4 == 0
+						CALL NTR_FELLATIO(LOCAL)
+					ELSEIF LOCAL:4 == 1
+						CALL NTR_69(LOCAL)
+					ELSE
+						CALL NTR_THUG(LOCAL)
+					ENDIF
+				ELSE
+					IF RAND:2 == 0
+						CALL NTR_SEX(LOCAL, LOCAL:3)
+					ELSE
+						CALL NTR_A_SEX(LOCAL, LOCAL:3)
+					ENDIF
+				ENDIF
+				CFLAG:LOCAL:NTR汚れ = FLAG:訪問者との行為の終了時刻
+				CFLAG:LOCAL:NTR訪問者との行為 = FLAG:訪問者との行為 
+			ELSEIF CFLAG:LOCAL:NTR汚れ > TIME
+				FLAG:訪問者との行為の終了時刻 = CFLAG:LOCAL:NTR汚れ
+				FLAG:訪問者との行為 = CFLAG:LOCAL:NTR訪問者との行為
+				SELECTCASE FLAG:訪問者との行為
+					CASE 1
+						CALL NTR_KISS(LOCAL)
+					CASE 2
+						CALL NTR_PET(LOCAL)
+					CASE 3
+						CALL NTR_BUST_PET(LOCAL)
+					CASE 4
+						CALL NTR_FELLATIO(LOCAL)
+					CASE 5
+						CALL NTR_69(LOCAL)
+					CASE 6
+						CALL NTR_THUG(LOCAL)
+					CASE 7 TO 13
+						CALL NTR_SEX(LOCAL, LOCAL:3)
+					CASE 14 TO 20
+						CALL NTR_A_SEX(LOCAL, LOCAL:3)
+					CASE 21 TO 27
+						; 予約しますby別人の別人
+					CASEELSE
+						; なに？
+				ENDSELECT
+				CFLAG:LOCAL:NTR汚れ = FLAG:訪問者との行為の終了時刻
+				CFLAG:LOCAL:NTR訪問者との行為 = FLAG:訪問者との行為 
+			ELSE
+				FLAG:訪問者との行為の終了時刻 = CFLAG:LOCAL:NTR汚れ
+				FLAG:訪問者との行為 = CFLAG:LOCAL:NTR訪問者との行為
+				SELECTCASE FLAG:訪問者との行為
+					CASE 1
+						CALL NTR_KISS_FINISH(LOCAL)
+					CASE 2
+						CALL NTR_PET_FINISH(LOCAL)
+					CASE 3
+						CALL NTR_BUST_PET_FINISH(LOCAL)
+					CASE 4
+						CALL NTR_FELLATIO_FINISH(LOCAL)
+					CASE 5
+						CALL NTR_69_FINISH(LOCAL)
+					CASE 6
+						CALL NTR_THUG_FINISH(LOCAL)
+					CASE 7 TO 13
+						CALL NTR_SEX_FINISH(LOCAL)
+					CASE 14 TO 20
+						CALL NTR_A_SEX_FINISH(LOCAL)
+					CASE 21 TO 27
+						; 予約しますby別人の別人
+					CASEELSE
+						; なに？
+				ENDSELECT
+				CFLAG:LOCAL:NTRハーレム行為種別 = 0
+				CFLAG:LOCAL:NTR汚れ = 0
+				CFLAG:LOCAL:NTR訪問者との行為 = 0
+				FLAG:ハーレム時カウンタ = 0
+			ENDIF
+			PRINTL
+		ENDIF
+	NEXT
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;以下、訪問者の性行動 各ソースからコピペして少しいじっただけなので適当です
+;キス
+@NTR_KISS(ARG)
+	;主人同席（見せつけ）
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_01(ARG, 2)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		CFLAG:ARG:屈服度 += 2
+		SIF EXP:ARG:NTR陥落経験 
+			CFLAG:ARG:屈服度 += 1
+		SIF TALENT:ARG:浮気な唇
+			CFLAG:ARG:屈服度 += 1
+		BASE:ARG:気力 -= 80
+		IF TALENT:ARG:浮気な唇
+			SOURCE:ARG:情愛 = 100
+			SOURCE:ARG:性行動 = 10
+			SOURCE:ARG:逸脱 = 10
+		ELSE
+			SOURCE:ARG:情愛 = 50
+			SOURCE:ARG:性行動 = 10
+			SOURCE:ARG:逸脱 = 10
+		ENDIF
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な唇
+			SOURCE:ARG:屈従 = 20
+			SOURCE:ARG:反感 = 0
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:屈従 = 15
+			SOURCE:ARG:反感 = 5
+		ELSE
+			SOURCE:ARG:屈従 = 10
+			SOURCE:ARG:反感 = 10
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 10
+		EXP:ARG:キス経験 ++
+		EXP:ARG:浮気キス経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + 10
+		FLAG:訪問者との行為 = 1
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;愛撫
+@NTR_PET(ARG)
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_01(ARG, 3)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		CFLAG:ARG:屈服度 += 3
+		SIF EXP:ARG:NTR陥落経験 
+			CFLAG:ARG:屈服度 += 1
+		BASE:ARG:体力 -= 5
+		BASE:ARG:気力 -= 50
+		SOURCE:ARG:快Ｃ = 80
+		SOURCE:ARG:快Ｂ = 80
+		SOURCE:ARG:情愛 = 50
+		SOURCE:ARG:性行動 = 60
+		SOURCE:ARG:露出 = 20
+		SOURCE:ARG:不潔 = 30
+		SOURCE:ARG:逸脱 = 20
+		IF TALENT:ARG:NTR
+			SOURCE:ARG:反感 = 5
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 10
+		ELSE
+			SOURCE:ARG:反感 = 20
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 20
+		EXP:ARG:キス経験 ++
+		SIF TALENT:ARG:汚臭耐性 > 0
+			SOURCE:ARG:不潔 /= 4
+		SIF TALENT:ARG:汚臭耐性 < 0
+			SOURCE:ARG:不潔 *= 3
+		SIF TALENT:ARG:プライド > 0
+			SOURCE:ARG:不潔 *= 2
+		FLAG:訪問者との行為の終了時刻 = TIME + 10
+		FLAG:訪問者との行為 = 2
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;胸愛撫
+@NTR_BUST_PET(ARG)
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_01(ARG, 4)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		CFLAG:ARG:屈服度 += 3
+		SIF EXP:ARG:NTR陥落経験 
+			CFLAG:ARG:屈服度 += 1
+		BASE:ARG:体力 -= 5
+		BASE:ARG:気力 -= 50
+		SOURCE:ARG:快Ｂ = 120
+		SOURCE:ARG:歓楽 = 100
+		SOURCE:ARG:情愛 = 150
+		SOURCE:ARG:欲情 = 170
+		SOURCE:ARG:露出 = 70
+		IF TALENT:ARG:NTR
+			SOURCE:ARG:反感 = 150
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 250
+		ELSE
+			SOURCE:ARG:反感 = 350
+		ENDIF
+		SOURCE:ARG:受動 = 120 + 240 * ABL:ARG:従順
+		IF TEQUIP:ARG:1 > 1
+			TIMES SOURCE:ARG:快Ｂ , 0.80
+			TIMES SOURCE:ARG:欲情 , 0.80
+			TIMES SOURCE:ARG:露出 , 0.80
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 20
+		FLAG:訪問者との行為の終了時刻 = TIME + 10
+		FLAG:訪問者との行為 = 3
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;フェラチオ
+@NTR_FELLATIO(ARG)
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_01(ARG, 5)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		CFLAG:ARG:屈服度 += 3
+		SIF EXP:ARG:NTR陥落経験 
+			CFLAG:ARG:屈服度 += 1
+		BASE:ARG:体力 -= 10
+		BASE:ARG:気力 -= 100
+		SOURCE:ARG:情愛 = 100
+		SOURCE:ARG:性行動 = 300
+		SOURCE:ARG:達成 = 150
+		SOURCE:ARG:屈従 = 700
+		SOURCE:ARG:不潔 = 200
+		IF TALENT:ARG:NTR
+			SOURCE:ARG:反感 = 50
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 100
+		ELSE
+			SOURCE:ARG:反感 = 200
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 400
+		EXP:ARG:口淫経験 ++
+		EXP:ARG:浮気口淫経験 ++
+		SIF TALENT:ARG:猫舌
+			EXP:ARG:嗜虐快楽経験 ++
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,0)
+			SETBIT STAIN:ARG:口,0
+		SETBIT STAIN:ARG:口,1
+		IF GETBIT(FLAG:訪問者との汚れ判定に使用,2)
+			EXP:ARG:精飲経験 ++
+			EXP:ARG:浮気精飲経験 ++
+			SETBIT STAIN:ARG:口,2
+			CLEARBIT FLAG:訪問者との汚れ判定に使用,2
+			CFLAG:ARG:射精者 = 21
+		ENDIF
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,3)
+			SETBIT STAIN:ARG:口,3
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,6)
+			SETBIT STAIN:ARG:口,6
+		FLAG:訪問者との行為の終了時刻 = TIME + 10
+		FLAG:訪問者との行為 = 4
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;シックスナイン
+@NTR_69(ARG)
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_01(ARG, 6)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		CFLAG:ARG:屈服度 += 3
+		SIF EXP:ARG:NTR陥落経験 
+			CFLAG:ARG:屈服度 += 1
+		BASE:ARG:体力 -= 20
+		BASE:ARG:気力 -= 160
+		SOURCE:ARG:快Ｃ = 100
+		SOURCE:ARG:情愛 = 100
+		SOURCE:ARG:性行動 = 450
+		SOURCE:ARG:達成 = 200
+		SOURCE:ARG:液体 = 80
+		SOURCE:ARG:露出 = 100
+		SOURCE:ARG:屈従 = 800
+		SOURCE:ARG:逸脱 = 600
+		IF TALENT:ARG:NTR
+			SOURCE:ARG:反感 = 200
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 400
+		ELSE
+			SOURCE:ARG:反感 = 600
+		ENDIF
+		IF !TALENT:処女
+			SOURCE:ARG:快Ｖ += 120
+			SOURCE:ARG:苦痛 += 15
+			SOURCE:ARG:露出 += 10
+			SOURCE:ARG:逸脱 += 20
+			SOURCE:ARG:反感 += 20
+		ELSE
+			SOURCE:ARG:快Ｖ += 60
+			SOURCE:ARG:苦痛 += 10
+			SOURCE:ARG:露出 += 30
+			SOURCE:ARG:逸脱 += 30
+			SOURCE:ARG:反感 += 30
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 800
+		EXP:ARG:口淫経験 ++
+		EXP:ARG:浮気口淫経験 ++
+		SIF TALENT:ARG:猫舌
+			EXP:ARG:嗜虐快楽経験 += 1
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,0)
+			SETBIT STAIN:ARG:口,0
+		SETBIT STAIN:ARG:口,1
+		IF GETBIT(FLAG:訪問者との汚れ判定に使用,2)
+			EXP:ARG:精飲経験 ++
+			EXP:ARG:浮気精飲経験 ++
+			SETBIT STAIN:ARG:口,2
+			CLEARBIT FLAG:訪問者との汚れ判定に使用,2
+			CFLAG:ARG:射精者 = 21
+		ENDIF
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,3)
+			SETBIT STAIN:ARG:口,3
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,6)
+			SETBIT STAIN:ARG:口,6
+		FLAG:訪問者との行為の終了時刻 = TIME + 10
+		FLAG:訪問者との行為 = 5
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;素股
+@NTR_THUG(ARG)
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は%NTR_NAME(0)%のペニスを股にはさみ、
+		IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+			PRINTFORM 陶酔しきった瞳で%NTR_NAME(0)%を見つめながら
+		ELSEIF TALENT:ARG:淫乱
+			PRINTFORM 淫猥な目つきで挑発しながら
+		ELSEIF TALENT:ARG:羞恥心 < 0
+			PRINTFORM 大胆に腰を動かしながら
+		ELSEIF TALENT:ARG:感情乏しい
+			PRINTFORM うっすらと上気した顔で
+		ELSE
+			PRINT 恥ずかしそうに
+		ENDIF
+		IF FLAG:訪問者との行為の終了時刻 == 0
+			PRINTFORMW %MSG_SLIT(ARG)%をペニスに擦りつけた
+			TRYCALLFORM NTR_KOJO_K{ARG}_7_0
+		ELSE
+			PRINTFORMW %MSG_SLIT(ARG)%をペニスに擦りつけている
+			TRYCALLFORM NTR_KOJO_K{ARG}_7_1
+		ENDIF
+	ENDIF
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		CFLAG:ARG:屈服度 += 4
+		SIF EXP:ARG:NTR陥落経験 
+			CFLAG:ARG:屈服度 += 2
+		BASE:ARG:体力 -= 40
+		BASE:ARG:気力 -= 130
+		SOURCE:ARG:快Ｃ = 150
+		SOURCE:ARG:情愛 = 80
+		SOURCE:ARG:性行動 = 250
+		SOURCE:ARG:達成 = 50
+		SOURCE:ARG:屈従 = 500
+		SOURCE:ARG:逸脱 = 120
+		IF TALENT:ARG:NTR
+			SOURCE:ARG:反感 = 60
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 100
+		ELSE
+			SOURCE:ARG:反感 = 120
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 300
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,0)
+			SETBIT STAIN:ARG:Ｖ,0
+		SETBIT STAIN:ARG:Ｖ,1
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,2)
+			SETBIT STAIN:ARG:Ｖ,2
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,3)
+			SETBIT STAIN:ARG:Ｖ,3
+		SIF GETBIT(FLAG:訪問者との汚れ判定に使用,6)
+			SETBIT STAIN:ARG:Ｖ,6
+		FLAG:訪問者との行為の終了時刻 = TIME + 20
+		FLAG:訪問者との行為 = 6
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;性交
+@NTR_SEX(ARG,ARG:1)
+	SIF FLAG:訪問者との行為の終了時刻 == 0
+		CFLAG:ARG:屈服度 += MAX( (FLAG:訪問者との行為の終了時刻 - TIME) / 10, 0)
+	SIF EXP:ARG:NTR陥落経験 
+		CFLAG:ARG:屈服度 += 2
+	;体位の決定(目立たない場所か私室かで体位に違いを)
+	LOCAL = 0
+	SELECTCASE FLAG:訪問者との行為
+		CASE 7 TO 11
+			LOCAL = FLAG:訪問者との行為 - 7
+		CASE IS > 11
+			LOCAL = FLAG:訪問者との行為 - 11
+		CASEELSE
+			SIF ARG:1 == 2
+				LOCAL = 5 + RAND:2
+			SIF ARG:1 >= 3
+				LOCAL = RAND:5
+	ENDSELECT
+	LOCAL = MIN(LOCAL, 6)
+	CALLFORM NTR_SEX_{LOCAL}(ARG)
+	;汚れ等共通する処理
+	SETBIT FLAG:訪問者との汚れ判定に使用,0
+	IF GETBIT(FLAG:訪問者との汚れ判定に使用,0)
+		SETBIT STAIN:ARG:Ｖ,0
+		SETBIT STAIN:ARG:膣内,0
+	ENDIF
+	SETBIT STAIN:ARG:Ｖ,1
+	SETBIT STAIN:ARG:膣内,1
+	IF GETBIT(FLAG:訪問者との汚れ判定に使用,2)
+		SETBIT STAIN:ARG:Ｖ,2
+		SETBIT STAIN:ARG:膣内,2
+	ENDIF
+	IF GETBIT(FLAG:訪問者との汚れ判定に使用,3)
+		SETBIT STAIN:ARG:Ｖ,3
+		SETBIT STAIN:ARG:膣内,3
+	ENDIF
+	IF TALENT:ARG:処女
+		SETBIT STAIN:ARG:Ｖ,6
+		SETBIT STAIN:ARG:膣内,6
+		SETBIT FLAG:訪問者との汚れ判定に使用,6
+		TALENT:ARG:処女 = 0
+		TRYCALL COM417_Lost_Virgin(ARG,-1)
+		;処女喪失中フラグセット
+		CFLAG:ARG:処女喪失中 = 1
+	ENDIF
+	CFLAG:ARG:精液残留中 = 0
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;キス、愛撫、奉仕時メッセージ・口上分岐
+;主人同席での見せつけも考慮
+;ARG…対象キャラ
+;ARG:1…行為コード 2:キス 3:愛撫 4:胸愛撫 5:フェラチオ 6:69 7:素股
+@NTR_KISS_PET_FELLA_MSG_KOJO_01(ARG, ARG:1)
+	;主人同席（見せつけ）
+	IF CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置
+		;開始
+		IF FLAG:訪問者との行為の終了時刻 == 0
+			CALLFORM NTR_MESSAGE_W_{ARG:1}_0(ARG)
+			TRYCALLLIST
+				FUNC NTR_KOJO_KW{ARG}_{ARG:1}_0
+				FUNC NTR_KOJO_KW_{ARG:1}_0(ARG)
+				FUNC NTR_KOJO_K{ARG}_{ARG:1}_0
+			ENDFUNC
+			;継続
+		ELSE
+			CALLFORM NTR_MESSAGE_W_{ARG:1}_1(ARG)
+			TRYCALLLIST
+				FUNC NTR_KOJO_KW{ARG}_{ARG:1}_1
+				FUNC NTR_KOJO_KW_{ARG:1}_1(ARG)
+				FUNC NTR_KOJO_K{ARG}_{ARG:1}_1
+			ENDFUNC
+		ENDIF
+		;二人きり
+	ELSE
+		IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+			;開始
+			IF FLAG:訪問者との行為の終了時刻 == 0
+				CALLFORM NTR_MESSAGE_{ARG:1}_0(ARG)
+				TRYCALLFORM NTR_KOJO_K{ARG}_{ARG:1}_0
+				;継続
+			ELSE
+				CALLFORM NTR_MESSAGE_{ARG:1}_1(ARG)
+				TRYCALLFORM NTR_KOJO_K{ARG}_{ARG:1}_1
+			ENDIF
+		ENDIF
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;キス、愛撫、奉仕時メッセージ・口上分岐
+;主人同席での見せつけも考慮
+;ARG…対象キャラ
+;ARG:1…行為コード 2:キス 3:愛撫 4:胸愛撫 5:フェラチオ 6:69 7:素股
+@NTR_KISS_PET_FELLA_MSG_KOJO_2(ARG, ARG:1)
+	;主人同席（見せつけ）
+	IF CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置
+		CALLFORM NTR_MESSAGE_{ARG:1}_2(ARG)
+		TRYCALLLIST
+			FUNC NTR_KOJO_KW{ARG}_{ARG:1}_2
+			FUNC NTR_KOJO_KW_{ARG:1}_2(ARG)
+			FUNC NTR_KOJO_K_{ARG:1}_2(ARG)
+		ENDFUNC
+		;二人きり
+	ELSE
+		IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+			CALLFORM NTR_MESSAGE_{ARG:1}_2(ARG)
+			TRYCALLLIST
+				FUNC NTR_KOJO_K{ARG}_{ARG:1}_2
+				FUNC NTR_KOJO_K_{ARG:1}_2(ARG)
+			ENDFUNC
+		ENDIF
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;性交時メッセージ・口上分岐
+;主人同席での見せつけも考慮
+;ARG…対象キャラ
+@NTR_SEX_MSG_KOJO(ARG)
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		; 開始／継続フラグ
+		LOCAL:1 = ( FLAG:訪問者との行為の終了時刻 == 0 ? 0 # 1 )
+		; 主人同席（見せつけ）フラグ
+		LOCAL:2 = ( CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置 ? 1 # 0 )
+		CALL NTR_SEX_KOJO_EX(ARG, LOCAL:1, LOCAL:2, "KOJO_PRE")
+		CALL NTR_SEX_KOJO_EX(ARG, LOCAL:1, LOCAL:2, "MESSAGE")
+		CALL NTR_SEX_KOJO_EX(ARG, LOCAL:1, LOCAL:2, "KOJO")
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;性交時メッセージ・口上分岐
+;主人同席での見せつけも考慮
+;ARG…対象キャラ
+@NTR_SEX_FINISH_MSG_KOJO(ARG)
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		; 主人同席（見せつけ）フラグ
+		LOCAL:2 = ( CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置 ? 1 # 0 )
+		CALL NTR_SEX_KOJO_EX(ARG, 2, LOCAL:2, "KOJO_PRE")
+		CALL NTR_SEX_KOJO_EX(ARG, 2, LOCAL:2, "MESSAGE")
+		CALL NTR_SEX_KOJO_EX(ARG, 2, LOCAL:2, "KOJO")
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;性交時メッセージ分岐
+;ARG…対象キャラ
+;ARG:1…0=開始 1=継続 2=終了
+;ARG:2…0=二人きり 1=主人同席
+;ARGS…口上または地の文の関数名の一部
+@NTR_SEX_KOJO_EX(ARG, ARG:1, ARG:2, ARGS)
+	SIF FLAG:口上テキスト設定 <= 0 && ARGS == "KOJO_PRE"
+		RETURN 0
+	SIF FLAG:口上テキスト設定 <= 0 && ARGS == "KOJO"
+		RETURN 0
+	SIF FLAG:情景テキスト設定 <= 0 && ARGS == "MESSAGE"
+		RETURN 0
+	SIF ARGS != "MESSAGE" && ARGS != "KOJO" && ARGS != "KOJO_PRE"
+		RETURN 0
+	LOCAL = FLAG:訪問者との行為 - 7
+	SIF FLAG:訪問者との行為 > 11
+		LOCAL = FLAG:訪問者との行為 - 11
+	LOCALS = \@ ARG:2 == 0 ? K # KW \@
+	TRYCALLLIST
+		;キャラ専用・体位専用
+		FUNC NTR_%ARGS%_%LOCALS%{ARG}_8_{LOCAL}_{ARG:1}
+		;キャラ専用・体位汎用
+		FUNC NTR_%ARGS%_%LOCALS%{ARG}_8_U_{ARG:1}
+		;キャラ汎用・体位専用
+		FUNC NTR_%ARGS%_%LOCALS%_8_{LOCAL}_{ARG:1}(ARG)
+		;キャラ汎用・体位汎用
+		FUNC NTR_%ARGS%_%LOCALS%_8_U_{ARG:1}(ARG)
+		;キャラ汎用・体位汎用がなければ正常位で代用
+		FUNC NTR_%ARGS%_%LOCALS%_8_0_{ARG:1}(ARG)
+	ENDFUNC
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;A性交時メッセージ・口上分岐
+;主人同席での見せつけも考慮
+;ARG:対象キャラ
+@NTR_A_SEX_MSG_KOJO(ARG)
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		; 開始／継続フラグ
+		LOCAL:1 = ( FLAG:訪問者との行為の終了時刻 == 0 ? 0 # 1 )
+		; 主人同席（見せつけ）フラグ
+		LOCAL:2 = ( CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置 ? 1 # 0 )
+		CALL NTR_A_SEX_KOJO_EX(ARG, LOCAL:1, LOCAL:2, "KOJO")
+		CALL NTR_A_SEX_KOJO_EX(ARG, LOCAL:1, LOCAL:2, "MESSAGE")
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;A性交時メッセージ・口上分岐
+;主人同席での見せつけも考慮
+;ARG:対象キャラ
+@NTR_A_SEX_FINISH_MSG_KOJO(ARG)
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		; 主人同席（見せつけ）フラグ
+		LOCAL:2 = ( CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置 ? 1 # 0 )
+		CALL NTR_A_SEX_KOJO_EX(ARG, 2, LOCAL:2, "KOJO_PRE")
+		CALL NTR_A_SEX_KOJO_EX(ARG, 2, LOCAL:2, "MESSAGE")
+		CALL NTR_A_SEX_KOJO_EX(ARG, 2, LOCAL:2, "KOJO")
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;A性交時メッセージ分岐
+;ARG…対象キャラ
+;ARG:1…0=開始 1=継続 2=終了
+;ARG:2…0=二人きり 1=主人同席
+;ARGS…口上または地の文の関数名の一部
+@NTR_A_SEX_KOJO_EX(ARG, ARG:1, ARG:2, ARGS)
+	SIF FLAG:口上テキスト設定 <= 0 && ARGS == "KOJO_PRE"
+		RETURN 0
+	SIF FLAG:口上テキスト設定 <= 0 && ARGS == "KOJO"
+		RETURN 0
+	SIF FLAG:情景テキスト設定 <= 0 && ARGS == "MESSAGE"
+		RETURN 0
+	SIF ARGS != "MESSAGE" && ARGS != "KOJO" && ARGS != "KOJO_PRE"
+		RETURN 0
+	LOCAL = FLAG:訪問者との行為 - 14
+	SIF FLAG:訪問者との行為 > 18
+		LOCAL = FLAG:訪問者との行為 - 19
+	LOCALS = \@ ARG:2 == 0 ? K # KW \@
+	TRYCALLLIST
+		;キャラ専用・体位専用
+		FUNC NTR_%ARGS%_%LOCALS%{ARG}_9_{LOCAL}_{ARG:1}
+		;キャラ専用・体位汎用
+		FUNC NTR_%ARGS%_%LOCALS%{ARG}_9_U_{ARG:1}
+		;キャラ汎用・体位専用
+		FUNC NTR_%ARGS%_%LOCALS%_9_{LOCAL}_{ARG:1}(ARG)
+		;キャラ汎用・体位汎用
+		FUNC NTR_%ARGS%_%LOCALS%_9_U_{ARG:1}(ARG)
+		;キャラ汎用・体位汎用がなければ正常位で代用
+		FUNC NTR_%ARGS%_%LOCALS%_9_0_{ARG:1}(ARG)
+	ENDFUNC
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;アナル性交
+@NTR_A_SEX(ARG,ARG:1)
+	SIF FLAG:訪問者との行為の終了時刻 == 0
+		CFLAG:ARG:屈服度 += MAX( (FLAG:訪問者との行為の終了時刻 - TIME) / 10, 0)
+	SIF EXP:ARG:NTR陥落経験 
+		CFLAG:ARG:屈服度 += 2
+	;体位の決定(目立たない場所か私室かで体位に違いを)
+	LOCAL = 0
+	SELECTCASE FLAG:訪問者との行為
+		CASE 14 TO 18
+			LOCAL = FLAG:訪問者との行為 - 14
+		CASE IS > 18
+			LOCAL = FLAG:訪問者との行為 - 19
+		CASEELSE
+			SIF ARG:1 == 2
+				LOCAL = 5 + RAND:2
+			SIF ARG:1 >= 3
+				LOCAL = RAND:5
+	ENDSELECT
+	LOCAL = MIN(LOCAL, 6)
+	CALLFORM NTR_A_SEX_{LOCAL}(ARG)
+	;汚れ等共通する処理
+	SETBIT FLAG:訪問者との汚れ判定に使用,3
+	IF GETBIT(FLAG:訪問者との汚れ判定に使用,0)
+		SETBIT STAIN:ARG:Ａ,0
+		SETBIT STAIN:ARG:腸内,0
+	ENDIF
+	SETBIT STAIN:ARG:Ａ,1
+	SETBIT STAIN:ARG:腸内,1
+	IF GETBIT(FLAG:訪問者との汚れ判定に使用,2)
+		SETBIT STAIN:ARG:Ａ,2
+		SETBIT STAIN:ARG:腸内,2
+	ENDIF
+	IF GETBIT(FLAG:訪問者との汚れ判定に使用,3)
+		SETBIT STAIN:ARG:Ａ,3
+		SETBIT STAIN:ARG:腸内,3
+	ENDIF
+	IF GETBIT(FLAG:訪問者との汚れ判定に使用,6)
+		SETBIT STAIN:ARG:Ａ,6
+		SETBIT STAIN:ARG:腸内,6
+	ENDIF
+	CFLAG:ARG:精液残留中 = 0
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;正常位
+@NTR_SEX_0(ARG)
+	;性交時メッセージ・口上 主人同席での見せつけも考慮
+	CALL NTR_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 50
+		BASE:ARG:気力 -= 100
+		IF TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:快Ｖ = 500
+			SOURCE:ARG:情愛 = 200
+			SOURCE:ARG:苦痛 = 200
+		ELSE
+			SOURCE:ARG:快Ｖ = 400
+			SOURCE:ARG:情愛 = 150
+			SOURCE:ARG:苦痛 = 500
+		ENDIF
+		SOURCE:ARG:露出 = 50
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:反感 = 150
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 240
+		ELSE
+			SOURCE:ARG:反感 = 300
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 300
+		SIF TALENT:ARG:貞操 > 0 && CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+			SOURCE:ARG:反感 += 1000
+		IF TALENT:ARG:処女 == 1
+			SOURCE:ARG:苦痛 += 2000
+			SOURCE:ARG:反感 += 3000
+		ENDIF
+		IF TALENT:ARG:処女 == 2
+			SOURCE:ARG:苦痛 += 500
+			SOURCE:ARG:反感 += 1000
+		ENDIF
+		EXP:ARG:Ｖ経験 ++
+		EXP:ARG:Ｖ性交経験 ++
+		EXP:ARG:浮気Ｖ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 7
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;後背位
+@NTR_SEX_1(ARG)
+	;性交時メッセージ・口上 主人同席での見せつけも考慮
+	CALL NTR_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 50
+		BASE:ARG:気力 -= 100
+		IF TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:快Ｖ = 500
+			SOURCE:ARG:情愛 = 200
+			SOURCE:ARG:苦痛 = 200
+		ELSE
+			SOURCE:ARG:快Ｖ = 400
+			SOURCE:ARG:情愛 = 150
+			SOURCE:ARG:苦痛 = 400
+		ENDIF
+		SOURCE:ARG:露出 = 70
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:反感 = 150
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 240
+		ELSE
+			SOURCE:ARG:反感 = 300
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 300
+		SIF TALENT:ARG:貞操 > 0 && CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+			SOURCE:ARG:反感 += 1000
+		IF TALENT:ARG:処女 == 1
+			SOURCE:ARG:苦痛 += 2000
+			SOURCE:ARG:反感 += 3000
+		ENDIF
+		IF TALENT:ARG:処女 == 2
+			SOURCE:ARG:苦痛 += 500
+			SOURCE:ARG:反感 += 1000
+		ENDIF
+		EXP:ARG:Ｖ経験 ++
+		EXP:ARG:Ｖ性交経験 ++
+		EXP:ARG:浮気Ｖ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 8
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;騎乗位
+@NTR_SEX_2(ARG)
+	;性交時メッセージ・口上 主人同席での見せつけも考慮
+	CALL NTR_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 60
+		BASE:ARG:気力 -= 150
+		IF TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:快Ｖ = 700
+			SOURCE:ARG:情愛 = 400
+			SOURCE:ARG:苦痛 = 200
+		ELSE
+			SOURCE:ARG:快Ｖ = 500
+			SOURCE:ARG:情愛 = 250
+			SOURCE:ARG:苦痛 = 500
+		ENDIF
+		SOURCE:ARG:性行動 = 250
+		SOURCE:ARG:達成 = 250
+		SOURCE:ARG:露出 = 120
+		SOURCE:ARG:逸脱 = 600
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:反感 = 400
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 600
+		ELSE
+			SOURCE:ARG:反感 = 800
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 800
+		SIF TALENT:ARG:貞操 > 0 && CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+			SOURCE:ARG:反感 += 1000
+		IF TALENT:ARG:処女 == 1
+			SOURCE:ARG:苦痛 += 2000
+			SOURCE:ARG:反感 += 3000
+		ENDIF
+		IF TALENT:ARG:処女 == 2
+			SOURCE:ARG:苦痛 += 500
+			SOURCE:ARG:反感 += 1000
+		ENDIF
+		EXP:ARG:Ｖ経験 ++
+		EXP:ARG:Ｖ性交経験 ++
+		EXP:ARG:浮気Ｖ性交経験 ++
+		SIF TALENT:ARG:処女
+			EXP:ARG:異常経験 += 2
+		SIF TALENT:ARG:処女 && !GETBIT(CFLAG:ARG:異常経験,1)
+			SETBIT CFLAG:ARG:異常経験,1
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 9
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;対面座位
+@NTR_SEX_3(ARG)
+	;性交時メッセージ・口上 主人同席での見せつけも考慮
+	CALL NTR_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 50
+		BASE:ARG:気力 -= 100
+		SOURCE:ARG:快Ｃ = 250
+		IF TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:快Ｖ = 500
+			SOURCE:ARG:情愛 = 450
+			SOURCE:ARG:苦痛 = 200
+		ELSE
+			SOURCE:ARG:快Ｖ = 350
+			SOURCE:ARG:情愛 = 350
+			SOURCE:ARG:苦痛 = 500
+		ENDIF
+		SOURCE:ARG:恭順 = 300
+		SOURCE:ARG:逸脱 = 500
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:反感 = 500
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 750
+		ELSE
+			SOURCE:ARG:反感 = 1000
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 900
+		SIF TALENT:ARG:貞操 > 0 && CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+			SOURCE:ARG:反感 += 1000
+		IF TALENT:ARG:処女 == 1
+			SOURCE:ARG:苦痛 += 2000
+			SOURCE:ARG:反感 += 3000
+		ENDIF
+		IF TALENT:ARG:処女 == 2
+			SOURCE:ARG:苦痛 += 500
+			SOURCE:ARG:反感 += 1000
+		ENDIF
+		EXP:ARG:Ｖ経験 ++
+		EXP:ARG:Ｖ性交経験 ++
+		EXP:ARG:浮気Ｖ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 10
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;背面座位
+@NTR_SEX_4(ARG)
+	;性交時メッセージ・口上 主人同席での見せつけも考慮
+	CALL NTR_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 50
+		BASE:ARG:気力 -= 100
+		SOURCE:ARG:快Ｃ = 250
+		SOURCE:ARG:快Ｂ = 250
+		IF TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:快Ｖ = 500
+			SOURCE:ARG:情愛 = 500
+			SOURCE:ARG:苦痛 = 200
+		ELSE
+			SOURCE:ARG:快Ｖ = 350
+			SOURCE:ARG:情愛 = 350
+			SOURCE:ARG:苦痛 = 400
+		ENDIF
+		SOURCE:ARG:露出 = 200
+		SOURCE:ARG:逸脱 = 500
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:反感 = 500
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 750
+		ELSE
+			SOURCE:ARG:反感 = 1000
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 800
+		SIF TALENT:ARG:貞操 > 0 && CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+			SOURCE:ARG:反感 += 1000
+		IF TALENT:ARG:処女 == 1
+			SOURCE:ARG:苦痛 += 2000
+			SOURCE:ARG:反感 += 3000
+		ENDIF
+		IF TALENT:ARG:処女 == 2
+			SOURCE:ARG:苦痛 += 500
+			SOURCE:ARG:反感 += 1000
+		ENDIF
+		EXP:ARG:Ｖ経験 ++
+		EXP:ARG:Ｖ性交経験 ++
+		EXP:ARG:浮気Ｖ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 11
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;対面立位
+@NTR_SEX_5(ARG)
+	;性交時メッセージ・口上 主人同席での見せつけも考慮
+	CALL NTR_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 50
+		BASE:ARG:気力 -= 100
+		IF TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:快Ｖ = 600
+			SOURCE:ARG:情愛 = 250
+			SOURCE:ARG:苦痛 = 200
+		ELSE
+			SOURCE:ARG:快Ｖ = 400
+			SOURCE:ARG:情愛 = 150
+			SOURCE:ARG:苦痛 = 500
+		ENDIF
+		SOURCE:ARG:露出 = 50
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:反感 = 150
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 240
+		ELSE
+			SOURCE:ARG:反感 = 300
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 300
+		SIF TALENT:ARG:貞操 > 0 && CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+			SOURCE:ARG:反感 += 1000
+		IF TALENT:ARG:処女 == 1
+			SOURCE:ARG:苦痛 += 2000
+			SOURCE:ARG:反感 += 3000
+		ENDIF
+		IF TALENT:ARG:処女 == 2
+			SOURCE:ARG:苦痛 += 500
+			SOURCE:ARG:反感 += 1000
+		ENDIF
+		EXP:ARG:Ｖ経験 ++
+		EXP:ARG:Ｖ性交経験 ++
+		EXP:ARG:浮気Ｖ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 12
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;背面立位
+@NTR_SEX_6(ARG)
+	;性交時メッセージ・口上 主人同席での見せつけも考慮
+	CALL NTR_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 50
+		BASE:ARG:気力 -= 100
+		IF TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:快Ｖ = 600
+			SOURCE:ARG:情愛 = 250
+			SOURCE:ARG:苦痛 = 200
+		ELSE
+			SOURCE:ARG:快Ｖ = 400
+			SOURCE:ARG:情愛 = 150
+			SOURCE:ARG:苦痛 = 400
+		ENDIF
+		SOURCE:ARG:露出 = 70
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な蜜壷
+			SOURCE:ARG:反感 = 150
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 240
+		ELSE
+			SOURCE:ARG:反感 = 300
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 300
+		SIF TALENT:ARG:貞操 > 0 && CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+			SOURCE:ARG:反感 += 1000
+		IF TALENT:ARG:処女 == 1
+			SOURCE:ARG:苦痛 += 2000
+			SOURCE:ARG:反感 += 3000
+		ENDIF
+		IF TALENT:ARG:処女 == 2
+			SOURCE:ARG:苦痛 += 500
+			SOURCE:ARG:反感 += 1000
+		ENDIF
+		EXP:ARG:Ｖ経験 ++
+		EXP:ARG:Ｖ性交経験 ++
+		EXP:ARG:浮気Ｖ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 13
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;正常位アナル
+@NTR_A_SEX_0(ARG)
+	CALL NTR_A_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 80
+		BASE:ARG:気力 -= 120
+		IF TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:快Ａ = 600
+			SOURCE:ARG:情愛 = 200
+			SOURCE:ARG:苦痛 = 400
+		ELSE
+			SOURCE:ARG:快Ａ = 400
+			SOURCE:ARG:情愛 = 100
+			SOURCE:ARG:苦痛 = 800
+		ENDIF
+		SOURCE:ARG:露出 = 60
+		SOURCE:ARG:逸脱 = 200
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:反感 = 250
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 370
+		ELSE
+			SOURCE:ARG:反感 = 500
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 500
+		EXP:ARG:Ａ経験 ++
+		EXP:ARG:Ａ性交経験 ++
+		EXP:ARG:浮気Ａ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 14
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;後背位アナル
+@NTR_A_SEX_1(ARG)
+	CALL NTR_A_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 80
+		BASE:ARG:気力 -= 120
+		IF TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:快Ａ = 600
+			SOURCE:ARG:情愛 = 200
+			SOURCE:ARG:苦痛 = 400
+		ELSE
+			SOURCE:ARG:快Ａ = 400
+			SOURCE:ARG:情愛 = 100
+			SOURCE:ARG:苦痛 = 900
+		ENDIF
+		SOURCE:ARG:露出 = 80
+		SOURCE:ARG:逸脱 = 200
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:反感 = 250
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 370
+		ELSE
+			SOURCE:ARG:反感 = 500
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 500
+		EXP:ARG:Ａ経験 ++
+		EXP:ARG:Ａ性交経験 ++
+		EXP:ARG:浮気Ａ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 15
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;騎乗位アナル
+@NTR_A_SEX_2(ARG)
+	CALL NTR_A_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 80
+		BASE:ARG:気力 -= 200
+		IF TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:快Ａ = 700
+			SOURCE:ARG:情愛 = 400
+			SOURCE:ARG:苦痛 = 400
+		ELSE
+			SOURCE:ARG:快Ａ = 500
+			SOURCE:ARG:情愛 = 250
+			SOURCE:ARG:苦痛 = 800
+		ENDIF
+		SOURCE:ARG:性行動 = 250
+		SOURCE:ARG:達成 = 250
+		SOURCE:ARG:露出 = 120
+		SOURCE:ARG:逸脱 = 700
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:反感 = 450
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 670
+		ELSE
+			SOURCE:ARG:反感 = 900
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 900
+		EXP:ARG:Ａ経験 ++
+		EXP:ARG:Ａ性交経験 ++
+		EXP:ARG:浮気Ａ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 16
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;対面座位アナル
+@NTR_A_SEX_3(ARG)
+	CALL NTR_A_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 70
+		BASE:ARG:気力 -= 150
+		SOURCE:ARG:快Ｃ = 250
+		IF TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:快Ａ = 600
+			SOURCE:ARG:情愛 = 500
+			SOURCE:ARG:苦痛 = 400
+		ELSE
+			SOURCE:ARG:快Ａ = 350
+			SOURCE:ARG:情愛 = 350
+			SOURCE:ARG:苦痛 = 800
+		ENDIF
+		SOURCE:ARG:恭順 = 300
+		SOURCE:ARG:逸脱 = 800
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:反感 = 600
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 900
+		ELSE
+			SOURCE:ARG:反感 = 1200
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 900
+		EXP:ARG:Ａ経験 ++
+		EXP:ARG:Ａ性交経験 ++
+		EXP:ARG:浮気Ａ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 17
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;背面座位アナル
+@NTR_A_SEX_4(ARG)
+	CALL NTR_A_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 70
+		BASE:ARG:気力 -= 150
+		SOURCE:ARG:快Ｃ = 250
+		SOURCE:ARG:快Ｂ = 250
+		IF TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:快Ａ = 500
+			SOURCE:ARG:情愛 = 450
+			SOURCE:ARG:苦痛 = 300
+		ELSE
+			SOURCE:ARG:快Ａ = 350
+			SOURCE:ARG:情愛 = 350
+			SOURCE:ARG:苦痛 = 700
+		ENDIF
+		SOURCE:ARG:露出 = 200
+		SOURCE:ARG:逸脱 = 800
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:反感 = 600
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 900
+		ELSE
+			SOURCE:ARG:反感 = 1200
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 900
+		EXP:ARG:Ａ経験 ++
+		EXP:ARG:Ａ性交経験 ++
+		EXP:ARG:浮気Ａ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 18
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;対面立位アナル
+@NTR_A_SEX_5(ARG)
+	CALL NTR_A_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 80
+		BASE:ARG:気力 -= 120
+		IF TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:快Ａ = 600
+			SOURCE:ARG:情愛 = 200
+			SOURCE:ARG:苦痛 = 400
+		ELSE
+			SOURCE:ARG:快Ａ = 400
+			SOURCE:ARG:情愛 = 100
+			SOURCE:ARG:苦痛 = 800
+		ENDIF
+		SOURCE:ARG:露出 = 60
+		SOURCE:ARG:逸脱 = 200
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:反感 = 250
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 340
+		ELSE
+			SOURCE:ARG:反感 = 500
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 500
+		EXP:ARG:Ａ経験 ++
+		EXP:ARG:Ａ性交経験 ++
+		EXP:ARG:浮気Ａ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 19
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;背面立位アナル
+@NTR_A_SEX_6(ARG)
+	CALL NTR_A_SEX_MSG_KOJO(ARG)
+	IF FLAG:訪問者との行為の終了時刻 == 0
+		BASE:ARG:体力 -= 80
+		BASE:ARG:気力 -= 120
+		IF TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:快Ａ = 600
+			SOURCE:ARG:情愛 = 200
+			SOURCE:ARG:苦痛 = 400
+		ELSE
+			SOURCE:ARG:快Ａ = 400
+			SOURCE:ARG:情愛 = 100
+			SOURCE:ARG:苦痛 = 900
+		ENDIF
+		SOURCE:ARG:露出 = 80
+		SOURCE:ARG:逸脱 = 200
+		IF TALENT:ARG:NTR || TALENT:ARG:浮気な尻穴
+			SOURCE:ARG:反感 = 250
+		ELSEIF CFLAG:ARG:屈服度 > 1000
+			SOURCE:ARG:反感 = 340
+		ELSE
+			SOURCE:ARG:反感 = 500
+		ENDIF
+		SIF TALENT:ARG:自己愛 < 0 || TALENT:ARG:抵抗
+			SOURCE:ARG:鬱屈 += 500
+		EXP:ARG:Ａ経験 ++
+		EXP:ARG:Ａ性交経験 ++
+		EXP:ARG:浮気Ａ性交経験 ++
+		FLAG:訪問者との行為の終了時刻 = TIME + (RAND:30 + 30)
+		FLAG:訪問者との行為 = 20
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_KISS_FINISH(ARG)
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_2(ARG, 2)
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_PET_FINISH(ARG)
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_2(ARG, 3)
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_BUST_PET_FINISH(ARG)
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_2(ARG, 4)
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_FELLATIO_FINISH(ARG)
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_2(ARG, 5)
+	EXP:ARG:精液経験 ++
+	EXP:ARG:精飲経験 ++
+	EXP:ARG:浮気精液経験 ++
+	EXP:ARG:浮気精飲経験 ++
+	EXP:ARG:口淫経験 ++
+	EXP:ARG:浮気口淫経験 ++
+	TRYCALL 精力取得, 998
+	TRYCALL NTR_SAMEN_EXP_PLUS(ARG, 1)
+	SETBIT STAIN:ARG:口,2
+	CLEARBIT FLAG:訪問者との汚れ判定に使用,2
+	CFLAG:ARG:射精者 = 21
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_69_FINISH(ARG)
+	CALL NTR_KISS_PET_FELLA_MSG_KOJO_2(ARG, 6)
+	EXP:ARG:精液経験 ++
+	EXP:ARG:精飲経験 ++
+	EXP:ARG:浮気精液経験 ++
+	EXP:ARG:浮気精飲経験 ++
+	EXP:ARG:口淫経験 ++
+	EXP:ARG:浮気口淫経験 ++
+	TRYCALL 精力取得, 998
+	TRYCALL NTR_SAMEN_EXP_PLUS(ARG, 1)
+	SETBIT STAIN:ARG:口,2
+	CLEARBIT FLAG:訪問者との汚れ判定に使用,2
+	CFLAG:ARG:射精者 = 21
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_THUG_FINISH(ARG)
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%の股にはさんだ%NTR_NAME(0)%のペニスから勢いよく精液が噴き出した
+		TRYCALLFORM NTR_KOJO_K{ARG}_7_2
+	ENDIF
+	CALL NTR_SEMEN_STAIN(ARG)
+	EXP:ARG:精液経験 ++
+	EXP:ARG:浮気精液経験 ++
+	TRYCALL 精力取得, 998
+	TRYCALL NTR_SAMEN_EXP_PLUS(ARG, 1)
+	SETBIT STAIN:ARG:口,2
+	CLEARBIT FLAG:訪問者との汚れ判定に使用,2
+	CFLAG:ARG:射精者 = 21
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_SEX_FINISH(ARG)
+	CALL NTR_SEX_FINISH_MSG_KOJO(ARG)
+	EXP:ARG:Ｖ絶頂経験 ++
+	EXP:ARG:絶頂経験 ++
+	EXP:ARG:精液経験 ++
+	EXP:ARG:浮気絶頂経験 ++
+	EXP:ARG:浮気精液経験 ++
+	;V感覚が高いと絶頂経験加算（強絶頂扱い）
+	CALL NTR_V_EXP_PLUS(ARG)
+	;TRYCALLFORM PREGNACY_S_CHECK(998,ARG,1)
+	TRYCALL 精力取得, 998
+	TRYCALL NTR_SAMEN_EXP_PLUS(ARG, 0)
+	TRYCALL 精子取得, 998, ARG
+	SETBIT STAIN:ARG:Ｖ,2
+	SETBIT STAIN:ARG:膣内,2
+	SETBIT FLAG:訪問者との汚れ判定に使用,2
+	CFLAG:ARG:射精者 = 21
+	SIF RAND:3 == 0
+		CALL NTR_PUNISHMENT_10(ARG, 0)
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_A_SEX_FINISH(ARG)
+	CALL NTR_A_SEX_FINISH_MSG_KOJO(ARG)
+	EXP:ARG:Ａ絶頂経験 ++
+	EXP:ARG:絶頂経験 ++
+	EXP:ARG:精液経験 ++
+	EXP:ARG:浮気絶頂経験 ++
+	EXP:ARG:浮気精液経験 ++
+	;A感覚が高いと絶頂経験加算（強絶頂扱い）
+	CALL NTR_A_EXP_PLUS(ARG)
+	TRYCALL 精力取得, 998
+	TRYCALL NTR_SAMEN_EXP_PLUS(ARG, 0)
+	SETBIT STAIN:ARG:Ａ,2
+	SETBIT STAIN:ARG:腸内,2
+	SETBIT FLAG:訪問者との汚れ判定に使用,2
+	CFLAG:ARG:射精者 = 21
+	SIF RAND:3 == 0
+		CALL NTR_PUNISHMENT_10(ARG, 1)
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_SEMEN_STAIN(LOCAL)
+	LOCAL:1 = CFLAG:LOCAL:睡眠 ? 0 # 1 + TALENT:LOCAL:幼稚
+	FLAG:(100 + CFLAG:LOCAL:現在位置) = MAX(FLAG:(100 + CFLAG:LOCAL:現在位置) + LOCAL:1 * TIME_PROGRESS(TFLAG:300),0)
+	FLAG:(100 + CFLAG:LOCAL:現在位置) = MIN(FLAG:(100 + CFLAG:LOCAL:現在位置),6000)
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_OPTION
+	SETBIT FLAG:ＮＴＲパッチ設定,0
+	$INPUT_LOOP_NTR_OPTION_TOP
+	PRINTFORML 
+	PRINTFORML 寝取られパッチのオプション設定をします
+	PRINTFORML [1] - %NTR_NAME(0)%の好感度吸収 \@ GETBIT(FLAG:ＮＴＲパッチ設定,1) ? ON # OFF \@
+	;PRINTFORML [2] - [恋慕] 等の素質消去 \@ GETBIT(FLAG:ＮＴＲパッチ設定,2) ? ON # OFF \@
+	PRINTFORML [3] - %NTR_NAME(0)%宅の長期滞在 \@ GETBIT(FLAG:ＮＴＲパッチ設定,3) ? ON # OFF \@
+	;PRINTFORML [4] - 監禁モード \@ GETBIT(FLAG:ＮＴＲパッチ設定,4) ? ON # OFF \@
+	PRINTFORML [5] - 妊娠の有無 \@ GETBIT(FLAG:ＮＴＲパッチ設定,5) ? ON # OFF \@
+	PRINTFORML [6] - お持ち帰りの有無 \@ GETBIT(FLAG:ＮＴＲパッチ設定,6) ? ON # OFF \@
+	PRINTFORML [7] - %NTR_NAME(0)%の有無 \@ GETBIT(FLAG:ＮＴＲパッチ設定,7) ? ON # OFF \@
+	PRINTFORML [24] - 恋慕限定NTR \@ GETBIT(FLAG:ＮＴＲパッチ設定,24) ? ON # OFF \@
+	PRINTFORML [31] - 訪問者居場所筒抜け \@ GETBIT(FLAG:ＮＴＲパッチ設定,31) ? ON # OFF \@
+	PRINTFORML [32] - 筒抜けモード \@ GETBIT(FLAG:ＮＴＲパッチ設定,32) ? ON # OFF \@
+	PRINTFORML [100] - 戻る
+	$INPUT_LOOP_NTR_OPTION
+	INPUT
+	IF RESULT == 1
+		PRINTFORML %NTR_NAME(0)%に好感度を吸い取られるようにしますか？(いいえの場合は減少無し)
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_1
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,1
+			PRINTFORMW 好感度が吸収されるようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,1
+			PRINTFORMW 好感度は吸収されません
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_1
+		ENDIF
+	ELSEIF RESULT == 2
+		PRINTFORML [恋慕] 等の素質消去を有効にしますか？
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_2
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,2
+			PRINTFORMW 素質が消去されるようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,2
+			PRINTFORMW 素質は消去されません
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_2
+		ENDIF
+	ELSEIF RESULT == 3
+		PRINTFORML 住民の長期滞在を有効にしますか？
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_3
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,3
+			PRINTFORMW 長期滞在を有効にしました
+			PRINTFORML 
+			$INPUT_LOOP_NTR_OPTION_3_0
+			FOR LOCAL,1,CHARANUM
+				CALL NTR_BIT_TO_NUM_MAX(LOCAL)
+				PRINTFORML [{LOCAL}] - %CALLNAME:LOCAL% {RESULT}日
+			NEXT
+			PRINTFORML [100] - 戻る
+			$INPUT_LOOP_NTR_OPTION_3_1
+			INPUT
+			IF 0 < RESULT && RESULT <= CHARANUM
+				LOCAL = RESULT
+				PRINTFORML 最大何日間滞在しますか？(0以下は翌朝帰り, 最大7日)
+				INPUT
+				CALL NTR_NUM_TO_BIT(LOCAL,22,LIMIT(RESULT,0,7))
+				GOTO INPUT_LOOP_NTR_OPTION_3_0
+			ELSEIF RESULT == 100
+				GOTO INPUT_LOOP_NTR_OPTION_TOP
+			ELSE
+				GOTO INPUT_LOOP_NTR_OPTION_3_1
+			ENDIF
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,3
+			PRINTFORMW 長期滞在を無効にしました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_3
+		ENDIF
+	ELSEIF RESULT == 4
+		PRINTFORML "%CALLNAME:MASTER%"お持ち帰り時に監禁されるようにしますか？
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_4
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,4
+			PRINTFORMW 監禁されるようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,4
+			PRINTFORMW 監禁されないようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_4
+		ENDIF
+	ELSEIF RESULT == 5
+		PRINTFORML %NTR_NAME(0)%の精液で妊娠するようにしますか？(妊娠パッチ導入時のみ動作)
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_5
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,5
+			PRINTFORMW 妊娠するようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,5
+			PRINTFORMW 妊娠しないようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_5
+		ENDIF
+	ELSEIF RESULT == 6
+		PRINTFORML %NTR_NAME(0)%による住人のお持ち帰りを許可しますか？
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_6
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,6
+			PRINTFORMW お持ち帰りするようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,6
+			PRINTFORMW お持ち帰りしないようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_6
+		ENDIF
+	ELSEIF RESULT == 7
+		PRINTFORML %NTR_NAME(0)%が来るようにしますか？
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_7
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,7
+			PRINTFORMW %NTR_NAME(0)%が来訪するようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,7
+			PRINTFORMW %NTR_NAME(0)%が来訪しないようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_7
+		ENDIF
+	ELSEIF RESULT == 24
+		PRINTFORML 恋慕付きの住人のみをNTR対象としますか？
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_24
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,24
+			PRINTFORMW %NTR_NAME(0)%が恋慕付きの住人のみを口説くようになりました
+			PRINTFORMW （NTR済みの住人も口説かれます）
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,24
+			PRINTFORMW %NTR_NAME(0)%が恋慕付きの住人に限らず口説くようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_24
+		ENDIF
+		;訪問者居場所筒抜け
+	ELSEIF RESULT == 31
+		PRINTFORML %NTR_NAME(0)%の居場所を筒抜けにしますか？
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_31
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,31
+			PRINTFORMW %NTR_NAME(0)%の居場所が筒抜けになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,31
+			PRINTFORMW %NTR_NAME(0)%の居場所が見えないようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_31
+		ENDIF
+		;筒抜けモード
+	ELSEIF RESULT == 32
+		PRINTFORML %NTR_NAME(0)%の行動を筒抜けにしますか？
+		PRINTFORML [0] はい
+		PRINTFORML [1] いいえ
+		$INPUT_LOOP_NTR_OPTION_32
+		INPUT
+		IF RESULT == 0
+			SETBIT FLAG:ＮＴＲパッチ設定,32
+			PRINTFORMW %NTR_NAME(0)%の行動が筒抜けになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSEIF RESULT == 1
+			CLEARBIT FLAG:ＮＴＲパッチ設定,32
+			PRINTFORMW %NTR_NAME(0)%の行動が見えないようになりました
+			GOTO INPUT_LOOP_NTR_OPTION_TOP
+		ELSE
+			GOTO INPUT_LOOP_NTR_OPTION_32
+		ENDIF
+	ELSEIF RESULT == 100
+		RETURN 0
+	ELSE
+		GOTO INPUT_LOOP_NTR_OPTION
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_BIT_TO_NUM(ARG)
+	LOCAL = 0
+	SIF GETBIT(CFLAG:ARG:長期滞在最大日数,0)
+		LOCAL += 1
+	SIF GETBIT(CFLAG:ARG:長期滞在最大日数,1)
+		LOCAL += 2
+	SIF GETBIT(CFLAG:ARG:長期滞在最大日数,2)
+		LOCAL += 4
+RETURN LOCAL
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_BIT_TO_NUM_MAX(ARG)
+	LOCAL = 0
+	SIF GETBIT(CFLAG:ARG:長期滞在最大日数,3)
+		LOCAL += 1
+	SIF GETBIT(CFLAG:ARG:長期滞在最大日数,4)
+		LOCAL += 2
+	SIF GETBIT(CFLAG:ARG:長期滞在最大日数,5)
+		LOCAL += 4
+RETURN LOCAL
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_NUM_TO_BIT(ARG,LOCAL,LOCAL:1)
+	IF LOCAL:1 == 0
+		CLEARBIT CFLAG:ARG:LOCAL,3
+		CLEARBIT CFLAG:ARG:LOCAL,4
+		CLEARBIT CFLAG:ARG:LOCAL,5
+	ELSEIF LOCAL:1 == 1
+		SETBIT CFLAG:ARG:LOCAL,3
+		CLEARBIT CFLAG:ARG:LOCAL,4
+		CLEARBIT CFLAG:ARG:LOCAL,5
+	ELSEIF LOCAL:1 == 2
+		CLEARBIT CFLAG:ARG:LOCAL,3
+		SETBIT CFLAG:ARG:LOCAL,4
+		CLEARBIT CFLAG:ARG:LOCAL,5
+	ELSEIF LOCAL:1 == 3
+		SETBIT CFLAG:ARG:LOCAL,3
+		SETBIT CFLAG:ARG:LOCAL,4
+		CLEARBIT CFLAG:ARG:LOCAL,5
+	ELSEIF LOCAL:1 == 4
+		CLEARBIT CFLAG:ARG:LOCAL,3
+		CLEARBIT CFLAG:ARG:LOCAL,4
+		SETBIT CFLAG:ARG:LOCAL,5
+	ELSEIF LOCAL:1 == 5
+		SETBIT CFLAG:ARG:LOCAL,3
+		CLEARBIT CFLAG:ARG:LOCAL,4
+		SETBIT CFLAG:ARG:LOCAL,5
+	ELSEIF LOCAL:1 == 6
+		CLEARBIT CFLAG:ARG:LOCAL,3
+		SETBIT CFLAG:ARG:LOCAL,4
+		SETBIT CFLAG:ARG:LOCAL,5
+	ELSEIF LOCAL:1 == 7
+		SETBIT CFLAG:ARG:LOCAL,3
+		SETBIT CFLAG:ARG:LOCAL,4
+		SETBIT CFLAG:ARG:LOCAL,5
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;訪問者によるお仕置き
+@NTR_PUNISHMENT(ARG)
+	;あなた限定
+	IF ARG == 0
+		CALL NTR_PUNISHMENT_2(0)
+		;その他住人
+	ELSE
+		LOCAL=1
+		;公衆便所
+		IF TALENT:ARG:公衆便所
+			LOCAL=5
+			;寝取られ
+		ELSEIF TALENT:ARG:NTR
+			LOCAL=4
+		ELSE
+			;行為種別で分岐
+			IF FLAG:訪問者のムード == 2
+				LOCAL=1
+			ELSEIF FLAG:訪問者のムード == 3
+				LOCAL=2
+			ELSEIF FLAG:訪問者のムード == 4
+				LOCAL=3
+			ENDIF
+		ENDIF
+		LOCAL = RAND:LOCAL
+		IF LOCAL > 3
+			LOCAL = 3
+		ENDIF
+		;処女にローターV挿入はしない
+		IF TALENT:ARG:処女
+			IF LOCAL == 2
+				LOCAL = 0
+			ELSEIF LOCAL == 3
+				LOCAL = 1
+			ENDIF
+		ENDIF
+		;公衆便所にノーパンはない
+		IF TALENT:ARG:公衆便所 && LOCAL == 0
+			LOCAL = 1
+		ENDIF
+		;結果に応じて処理
+		IF LOCAL == 3
+			CALL NTR_PUNISHMENT_3(ARG)
+		ELSEIF LOCAL == 2
+			CALL NTR_PUNISHMENT_1(ARG)
+		ELSEIF LOCAL == 1
+			CALL NTR_PUNISHMENT_2(ARG)
+		ELSE
+			CALL NTR_PUNISHMENT_0(ARG)
+		ENDIF
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;パンツを脱がせる
+@NTR_PUNISHMENT_0(ARG)
+	SIF !CFLAG:ARG:服装_下半身下着２
+		RETURN 1
+	CFLAG:ARG:服装_下半身下着２ = 0
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の下着を奪って
+		PRINTFORML 今日一日ノーパンで過ごすように命令し着衣の乱れを整えさせた…
+		TRYCALLFORM NTR_KOJO_K{ARG}_15_0
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;ローター挿入
+@NTR_PUNISHMENT_1(ARG)
+	SIF !HAS_VAGINA(ARG)
+		RETURN 1
+	SIF CFLAG:ARG:ローター挿入 != 0
+		RETURN 1
+	IF TALENT:ARG:処女
+		CALL NTR_PUNISHMENT_2(ARG)
+		RETURN 0
+	ENDIF
+	CFLAG:ARG:ローター挿入 = 240
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の秘所にローターを挿入して固定すると
+		PRINTFORML しばらくそのままで居るように命令して着衣の乱れを整えさせた…
+		TRYCALLFORM NTR_KOJO_K{ARG}_15_1
+		CFLAG:ARG:ローター挿入者 = 21
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;ローターA挿入
+@NTR_PUNISHMENT_2(ARG)
+	SIF CFLAG:ARG:ローターA挿入 != 0
+		RETURN 1
+	CFLAG:ARG:ローターA挿入 = 240
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%のアヌスにローターを挿入して固定し
+		PRINTFORML しばらくそのままで居るように命令して着衣の乱れを整えさせた…
+		TRYCALLFORM NTR_KOJO_K{ARG}_15_2
+		CFLAG:ARG:ローター挿入者 = 21
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;ローター前後挿入
+@NTR_PUNISHMENT_3(ARG)
+	IF !HAS_VAGINA(ARG)
+		CALL NTR_PUNISHMENT_2(ARG)
+		RETURN 0
+	ENDIF
+	CFLAG:ARG:ローター挿入 = 240
+	CFLAG:ARG:ローターA挿入 = 240
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:ARG%の秘所とアヌスにローターを挿入して固定し
+		PRINTFORML しばらくそのままで居るように命令して着衣の乱れを整えさせた…
+		TRYCALLFORM NTR_KOJO_K{ARG}_15_3
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;精液残留
+;ARG … 対象者コード
+;ARG:1 … 0:膣内 1:アナル
+@NTR_PUNISHMENT_10(ARG, ARG:1)
+	SIF !HAS_VAGINA(ARG)
+		RETURN 1
+	SIF CFLAG:ARG:精液残留中 != 0
+		RETURN 1
+	CFLAG:ARG:精液残留中 = 40
+	IF NTR_CHK_VISIBLE(FLAG:訪問者の現在位置)
+		PRINTFORML 
+		IF ARG:1 == 0
+			PRINTFORML %NTR_NAME(0)%によって注ぎ込まれた大量の精液は、溢れる出てくるのを拒否するかのように%CALLNAME:ARG%の膣内に留まっている…
+		ELSE
+			PRINTFORML %NTR_NAME(0)%によって注ぎ込まれた大量の精液は、溢れる出てくるのを拒否するかのように%CALLNAME:ARG%の腸内に留まっている…
+		ENDIF
+		TRYCALLFORM NTR_KOJO_K{ARG}_15_10
+	ENDIF
+RETURN 0
+
+;-----------------------------------------------------------
+;公衆便所の貞操帯チェック
+;@param ARG   チェックするキャラクター番号
+@NTR_LOCK(ARG)
+	#FUNCTION
+	IF TALENT:ARG:公衆便所
+		;鍵を持っていたらロック解除
+		IF FLAG:貞操帯鍵購入フラグ == ARG
+			RETURNF 0
+		ENDIF
+		RETURNF 1
+	ELSE
+		RETURNF 0
+	ENDIF
+
+;-----------------------------------------------------------
+;公衆便所利用権のお値段を求める
+;@param ARG   キャラクターの番号
+;@param ARG:1 鍵の種類（ビット演算）
+;    0b00000001:ニプルシールド
+;    0b00000010:フルカップ
+;    0b00000100:ブラジャー
+;    0b00001000:アナルシールド
+;    0b00010000:リアシールド
+;    0b00100000:自慰防止板
+;    0b01000000:フロントシールド
+;    0b10000000:ウエストベルト
+;@return 鍵のお値段
+@NTR_COST_UNLOCK(ARG,ARG:1)
+	#FUNCTION
+	VARSET LOCAL
+	SIF ARG:1 == 0
+		ARG:1 = 0b11111000
+	;素質により基本倍率決定。
+	LOCAL:1 = MAX(TALENT:ARG:淫乱*10,10)
+	;「あなた」向けのペナルティ。陥落経験１回ごとにお値段1%増。
+	LOCAL:1 += (LOCAL:1*MAX(EXP:ARG:NTR陥落経験,1)/100)
+	;部位の技能が高いほどお値段も高くなります。
+	IF GETBIT(ARG:1,0) ;乳首権
+		LOCAL:2 += LIMIT(ABL:ARG:Ｂ感覚,1,2)
+	ENDIF
+	IF GETBIT(ARG:1,1) ;乳房権
+		LOCAL:2 += LIMIT(ABL:ARG:胸,0,2)
+	ENDIF
+	IF GETBIT(ARG:1,2) ;上半身権
+		LOCAL:2 += LIMIT(ABL:ARG:胸,0,2)
+	ENDIF
+	IF GETBIT(ARG:1,3) ;Ａ愛撫権
+		LOCAL:2 += LIMIT(ABL:ARG:Ａ感覚,1,2)
+	ENDIF
+	IF GETBIT(ARG:1,4) ;Ａ挿入権
+		LOCAL:2 += LIMIT(ABL:ARG:アナル,0,3) + LIMIT(ABL:ARG:腰,0,3)
+	ENDIF
+	IF GETBIT(ARG:1,5) ;Ｃ愛撫権
+		LOCAL:2 += LIMIT(ABL:ARG:Ｃ感覚,1,2)
+	ENDIF
+	IF GETBIT(ARG:1,6) ;Ｖ挿入権
+		LOCAL:2 += LIMIT(ABL:ARG:Ｖ感覚,1,2) + LIMIT(ABL:ARG:膣,0,3) + LIMIT(ABL:ARG:腰,0,3)
+	ENDIF
+	IF GETBIT(ARG:1,7) ;種付け権
+		LOCAL:2 += LIMIT(ABL:ARG:Ｖ感覚,1,100) + LIMIT(ABL:ARG:膣,1,100) + LIMIT(ABL:ARG:腰,1,100)
+	ENDIF
+	DEBUGPRINTFORML 素質による基本価格:{LOCAL:1}
+	DEBUGPRINTFORML 技能による基本倍率:{LOCAL:2}
+	SELECTCASE ARG
+		CASE 1 ;美鈴
+			LOCAL:0 = ( LOCAL:1 * LOCAL:2 *  5 ) 
+		CASE 2 ;小悪魔
+			LOCAL:0 = ( LOCAL:1 * LOCAL:2 *  5 )
+		CASE 3 ;パチュリー
+			LOCAL:0 = ( LOCAL:1 * LOCAL:2 *  7 )
+		CASE 4 ;咲夜
+			LOCAL:0 = ( LOCAL:1 * LOCAL:2 *  6 )
+		CASEELSE ;その他
+			LOCAL:0 = ( LOCAL:1 * LOCAL:2 *  5 )
+	ENDSELECT
+RETURNF LOCAL:0
+
+;-----------------------------------------------------------
+;貞操帯の鍵を発見した時の反応
+;@param   発見したキャラクター
+@NTR_LOCK_REACTION(ARG)
+	;鍵を持っていなければ処理なし
+	IF !FLAG:貞操帯鍵購入フラグ
+		RETURN 0
+	ENDIF
+	;一度反応しているのならそれ以上は反応しない
+	IF !CFLAG:ARG:NTR貞操帯反応
+		RETURN 0
+	ENDIF
+	;本人の鍵かどうかで反応が変わる
+	IF FLAG:貞操帯鍵購入フラグ == ARG
+		;買われた本人の反応
+		PRINTFORMW %CALLNAME:MASTER%が持っている鍵を見つけた%CALLNAME:ARG%は、%NTR_NAME(0)%の役に立てて喜んでいる。
+		CFLAG:ARG:好感度 += 50
+		TRYCALLFORM NTR_KOJO_K{ARG}_16_0
+		PRINTFORMW 
+	ELSE
+		;本人以外の鍵を見つけた場合
+		PRINTFORM %CALLNAME:MASTER%が持っている鍵を見つけた%CALLNAME:ARG%は、
+		IF TALENT:ARG:公衆便所
+			PRINTFORMW %NTR_NAME(0)%のためになることだと喜んでいる。
+		ELSEIF TALENT:ARG:NTR
+			PRINTFORMW %NTR_NAME(0)%のためになることだと喜んでいる。
+		ELSEIF TALENT:ARG:恋慕
+			PRINTFORMW 軽蔑のまなざしであなたを睨んだ。
+			CFLAG:ARG:好感度 -= 500
+			;パルスィ、勇儀、さとり
+		ELSEIF ARG==3 || ARG==4 || ARG==5
+			PRINTFORMW 軽蔑のまなざしであなたを睨んだ。
+			CFLAG:ARG:好感度 -= 200
+		ELSE
+			PRINTFORMW 呆れたようなまなざしであなたを見つめた。
+			CFLAG:ARG:好感度 -= 100
+		ENDIF
+		TRYCALLFORM NTR_KOJO_K{ARG}_16_1
+		PRINTFORMW 
+	ENDIF
+	;反応フラグ解除
+	CFLAG:ARG:NTR貞操帯反応 = 0
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;コマンドに応じた貞操帯鍵購入反応呼び出し
+@NTR_LOCK_REACTION_COM(ARG)
+	;貞操帯購入チェックの必要なコマンド一覧
+	;アナル愛撫、クリ愛撫、指挿れ
+	IF SELECTCOM == 314 || SELECTCOM == 315 || SELECTCOM == 316 
+		CALL NTR_LOCK_REACTION(ARG)
+	ENDIF
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;同行者への影響チェック
+;ARG:経過時間
+@NTR_CHK_GOWITH(ARG)
+	FOR LOCAL,1,CHARANUM
+		;訪問者の影響
+		IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置
+			IF CFLAG:LOCAL:同行 
+				;NTRなら即座に同行解除
+				IF TALENT:LOCAL:NTR
+					CFLAG:LOCAL:同行 = 0
+					PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:MASTER%から離れ%NTR_NAME(0)%の方に歩いていった。
+				ELSE
+					;ただいるだけで影響あり
+					;寝取られそうだと影響大
+					IF NTR_CHK_FAVORABLY(LOCAL, "主人より高い")
+						CFLAG:LOCAL:同行 = MAX(CFLAG:LOCAL:同行 - ARG * 2, 0)
+					ELSE
+						CFLAG:LOCAL:同行 = MAX(CFLAG:LOCAL:同行 - ARG, 0)
+					ENDIF
+					IF CFLAG:LOCAL:同行 == 0
+						IF NTR_CHK_FAVORABLY(LOCAL, "主人より高い")
+							PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:MASTER%から離れ%NTR_NAME(0)%の方に歩いていった。
+						ELSE
+							PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:MASTER%から離れた。
+						ENDIF
+					ELSE
+						PRINTFORMW %CALLNAME:LOCAL%は%NTR_NAME(0)%が気になるようだ。
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	NEXT
+RETURN
+
+;-------------------------------------------------------------------------------
+;施錠可否判定
+@IS_CAN_LOCK(ARG)
+	#FUNCTION
+	;正門
+	SIF ARG == 1
+		RETURNF 0
+	;広間
+	SIF ARG == 2
+		RETURNF 0
+	;中央廊下
+	SIF ARG == 3
+		RETURNF 0
+	;西廊下
+	SIF ARG == 4
+		RETURNF 0
+	;東廊下
+	SIF ARG == 5
+		RETURNF 0
+	;あなた私室
+	SIF ARG == 8
+		RETURNF 0
+	;庭
+	SIF ARG == 16
+		RETURNF 0
+	;旧地獄街道
+	SIF ARG == 20
+		RETURNF 0
+RETURNF 1
+
+;-------------------------------------------------------------------------------
+;NTRカウンター関連
+;住人が訪問者に対して軽いセクハラを実行
+@NTR_COUNTER(ARG)
+	LOCAL = 0
+	;寝取られ
+	IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+		LOCAL = RAND:12
+		;主人より好感度が高い
+	ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+		;主人も同席
+		IF CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置
+			SIF RAND:3
+				LOCAL = RAND:6
+			;主人不在
+		ELSE
+			SIF RAND:2
+				LOCAL = RAND:12
+		ENDIF
+		;うふふする程度に好感度が高い
+	ELSEIF NTR_CHK_FAVORABLY(ARG, "うふふする程度")
+		;主人も同席
+		IF CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置
+			SIF RAND:4
+				LOCAL = RAND:5
+			;主人不在
+		ELSE
+			SIF RAND:3
+				LOCAL = RAND:8
+		ENDIF
+		;奉仕する程度に好感度が高い
+	ELSEIF NTR_CHK_FAVORABLY(ARG, "奉仕する程度")
+		;主人も同席
+		IF CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置
+			SIF RAND:4
+				LOCAL = RAND:3
+			;主人不在
+		ELSE
+			SIF RAND:3
+				LOCAL = RAND:6
+		ENDIF
+	ELSE
+		LOCAL = 0
+	ENDIF
+	IF LOCAL
+		CALL NTR_COUNTER_DO(ARG, LOCAL)
+	ENDIF
+	;NTRカウンター実行の保存
+	CFLAG:ARG:NTRカウンターセクハラ = LOCAL
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;NTRカウンター実行
+;ARG…カウンター実行者
+;ARG:1…カウンター行為
+@NTR_COUNTER_DO(ARG,ARG:1)
+	SELECTCASE ARG:1
+			;色っぽいしぐさ
+		CASE 1
+			SOURCE:ARG:誘惑 += 150
+			SOURCE:ARG:挑発 += 50
+			PRINTFORMW %CALLNAME:ARG%は色っぽい仕草で%NTR_NAME(0)%を誘惑した…
+			;見つめる
+		CASE 2
+			SOURCE:ARG:誘惑 += 80
+			PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%を潤んだ瞳でじっと見つめている…
+			;身体を摺り寄せる
+		CASE 3
+			SOURCE:ARG:誘惑 += 100
+			SOURCE:ARG:奉仕 += 100
+			PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%に身体を摺り寄せた…
+			;耳元に息を吹きかける
+		CASE 4
+			SOURCE:ARG:誘惑 += 50
+			SOURCE:ARG:挑発 += 100
+			PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%に近寄り耳元に息を吹きかけた…
+			;キス
+		CASE 5
+			SOURCE:ARG:誘惑 += 250
+			SOURCE:ARG:奉仕 += 100
+			IF CFLAG:MASTER:現在位置 == FLAG:訪問者の現在位置
+				;主人公より好意度がかなり高いと堂々とキスする
+				IF CFLAG:ARG:屈服度 > (CFLAG:ARG:好感度 * 2)
+					IF TALENT:ARG:恋慕
+						PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の目の前で%NTR_NAME(0)%に唇を重ねた…
+					ELSE
+						PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の目の前で%NTR_NAME(0)%に唇を重ねた…
+					ENDIF
+				ELSE
+					PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の目を盗んで%NTR_NAME(0)%に唇を重ねた…
+				ENDIF
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%に唇を重ねた…
+			ENDIF
+			EXP:ARG:キス経験 ++
+			EXP:ARG:浮気キス経験 ++
+			CFLAG:ARG:屈服度 ++
+			SIF TALENT:ARG:浮気な唇
+				CFLAG:ARG:屈服度 ++
+			;後ろから抱きつく
+		CASE 6
+			SOURCE:ARG:誘惑 += 300
+			SOURCE:ARG:奉仕 += 100
+			PRINTFORMW %CALLNAME:ARG%は背後から%NTR_NAME(0)%に抱きついた
+			SIF TALENT:ARG:バストサイズ > 0
+				PRINTFORML %NTR_NAME(0)%の背中に%CALLNAME:ARG%の柔らかな胸が押し当てられている…
+			;前から抱きつく
+		CASE 7
+			SOURCE:ARG:誘惑 += 300
+			SOURCE:ARG:奉仕 += 100
+			PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%を抱きしめた
+			;胸を揉ませる
+		CASE 8
+			SOURCE:ARG:誘惑 += 300
+			SOURCE:ARG:奉仕 += 200
+			SOURCE:ARG:強要 += 200
+			SOURCE:ARG:快Ｂ += 200
+			IF TALENT:ARG:バストサイズ > 0
+				PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%の手を取り、自分の胸を揉ませた…
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%の手を取り、自分の胸を撫でさせた…
+			ENDIF
+			CFLAG:ARG:屈服度 ++
+			;股間をまさぐる
+		CASE 9
+			SOURCE:ARG:誘惑 += 300
+			SOURCE:ARG:挑発 += 200
+			SOURCE:ARG:奉仕 += 200
+			PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%の股間に手を伸ばしそっとまさぐった…
+			CFLAG:ARG:屈服度 ++
+			;スカートの中を見せる
+		CASE 10
+			SOURCE:ARG:誘惑 += 400
+			SOURCE:ARG:挑発 += 100
+			PRINTFORML %CALLNAME:ARG%は\@ TALENT:ARG:羞恥心 > 0 ? おずおずと # \@自分のスカートを捲り
+			PRINTFORM %NTR_NAME(0)%の目の前に
+			IF EQUIP:ARG:下半身下着１
+				PRINTFORM %PANTS_DESCRIPTION(EQUIP:ARG:下半身下着１)%%PANTSNAME(EQUIP:ARG:下半身下着１)%
+			ELSEIF !EQUIP:ARG:下半身下着２
+				PRINTFORM スカートの中の何も着ていない下半身
+			ELSE
+				PRINTFORM %PANTS_DESCRIPTION(EQUIP:ARG:下半身下着２)%%PANTSNAME(EQUIP:ARG:下半身下着２)%
+			ENDIF
+			PRINTFORML を晒した…
+			CFLAG:ARG:屈服度 ++
+			;ディープキス
+		CASE 11
+			SOURCE:ARG:性行動 += 1000
+			SOURCE:ARG:誘惑 += 150
+			SOURCE:ARG:奉仕 += 150
+			IF TALENT:ARG:淫乱
+				PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%にくちづけし情熱的に舌を絡め唾液を流し込んだ…
+			ELSE
+				PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%にくちづけし情熱的に舌を絡めた…
+			ENDIF
+			EXP:ARG:キス経験 ++
+			EXP:ARG:浮気キス経験 ++
+			CFLAG:ARG:屈服度 += 2
+			SIF TALENT:ARG:浮気な唇
+				CFLAG:ARG:屈服度 += 2
+	ENDSELECT
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;NTRカウンターに対するカウンター
+;ARG…カウンター実行者
+;ARG:1…行為上限
+@NTR_COUNTER_COUNTER(ARG,ARG:1)
+	LOCAL = 0
+	;RAND時LOCAL:1 = 1
+	LOCAL:1 = 0
+	SELECTCASE CFLAG:ARG:NTRカウンターセクハラ
+			;色っぽいしぐさ
+		CASE 1
+			;特に影響なし
+			LOCAL = RAND:(ARG:1)
+			LOCAL:1 = 1
+			;見つめる
+		CASE 2
+			;1/2でキス
+			IF ARG:1 >= 1 && RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%に見つめられた%NTR_NAME(0)%は彼女の唇を奪った…
+				LOCAL = 1
+			ELSE
+				LOCAL = RAND:(ARG:1)
+				LOCAL:1 = 1
+			ENDIF
+			;身体を摺り寄せる
+		CASE 3
+			;1/2で愛撫
+			IF ARG:1 >= 2 && RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%と密着した%NTR_NAME(0)%は彼女の身体に触れた…
+				LOCAL = 2
+				;1/2でキス
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%と密着した%NTR_NAME(0)%は彼女の唇を奪った…
+				LOCAL = 1
+			ENDIF
+			;耳元に息を吹きかける
+		CASE 4
+			;特に影響なし
+			LOCAL = RAND:(ARG:1)
+			LOCAL:1 = 1
+			;キス
+		CASE 5
+			;1/2でキス
+			IF ARG:1 >= 1 && RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%ににキスされた%NTR_NAME(0)%はお望みとあらばと彼女の唇を奪った…
+				LOCAL = 1
+				;1/2で愛撫
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%にキスされた%NTR_NAME(0)%は彼女の身体に触れた…
+				LOCAL = 2
+			ENDIF
+			;後ろから抱きつく
+		CASE 6
+			;特に影響なし
+			LOCAL = RAND:(ARG:1)
+			LOCAL:1 = 1
+			;前から抱きつく
+		CASE 7
+			;キス
+			IF ARG:1 >= 1
+				PRINTFORMW %CALLNAME:ARG%に抱きつかれた%NTR_NAME(0)%は彼女の唇を奪った…
+				LOCAL = 1
+			ELSE
+				LOCAL = RAND:(ARG:1)
+				LOCAL:1 = 1
+			ENDIF
+			;胸を揉ませる
+		CASE 8
+			;愛撫
+			IF ARG:1 >= 2
+				PRINTFORMW %CALLNAME:ARG%の胸を揉んだ%NTR_NAME(0)%は彼女の身体に触れた…
+				LOCAL = 2
+			ELSE
+				LOCAL = RAND:(ARG:1)
+				LOCAL:1 = 1
+			ENDIF
+			;股間をまさぐる
+		CASE 9
+			;奉仕
+			IF ARG:1 >= 3
+				PRINTFORMW %CALLNAME:ARG%に股間をまさぐられた%NTR_NAME(0)%はいきり立つものへの奉仕を求めた…
+				LOCAL = 3
+			ELSE
+				LOCAL = RAND:(ARG:1)
+				LOCAL:1 = 1
+			ENDIF
+			;スカートの中を見せる
+		CASE 10
+			;性交
+			IF ARG:1 >= 4
+				PRINTFORMW %CALLNAME:ARG%の下半身に欲情した%NTR_NAME(0)%は彼女に性交奉仕を求めた…
+				LOCAL = 4
+				;愛撫
+			ELSEIF ARG:1 >= 2
+				LOCAL = 2
+			ELSE
+				LOCAL = RAND:(ARG:1)
+				LOCAL:1 = 1
+			ENDIF
+			;ディープキス
+		CASE 11
+			;1/2で奉仕
+			IF ARG:1 >= 3 && RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%の濃厚なキスに満足した%NTR_NAME(0)%は彼女に唇での奉仕を求めた…
+				LOCAL = 3
+			ELSE
+				LOCAL = RAND:(ARG:1)
+				LOCAL:1 = 1
+			ENDIF
+	ENDSELECT
+	IF LOCAL:1
+		;覗きバレ後は行為エスカレート
+		IF CFLAG:ARG:覗き発覚回数 && FLAG:訪問者のムード < 2
+			FLAG:訪問者のムード += 1
+		ENDIF
+	ENDIF
+RETURN LOCAL
+
+;-------------------------------------------------------------------------------
+;覗きバレした時の見せつけ
+;ARG…訪問者の相手
+@NTR_SHOW_PEEP(ARG)
+	PRINTFORMW %NTR_NAME(0)%と%CALLNAME:ARG%は%CALLNAME:MASTER%の視線に気づいたようだ
+	;NTR覗き発覚カウンタ更新
+	CFLAG:ARG:覗き発覚回数 ++
+	;NTR覗き発覚時行為コード更新
+	CFLAG:ARG:覗き発覚時行為 = MAX(CFLAG:ARG:覗き発覚時行為, FLAG:訪問者との行為)
+	;会話以外の時覗きバレが２回目以降だと好意度低下
+	IF FLAG:訪問者との行為 != 0 && CFLAG:ARG:覗き発覚回数 > 1
+		;NTRの場合減らないものとする。
+		SIF !TALENT:ARG:NTR
+			CFLAG:ARG:好感度 --
+	ENDIF
+	SELECTCASE FLAG:訪問者との行為
+			;会話
+		CASE 0
+			;単に話している時は何もなし
+			;キス
+		CASE 1
+			CALL NTR_MESSAGE_KISS_SHOW(ARG)
+			;愛撫
+		CASE 2
+			CALL NTR_MESSAGE_PET_SHOW(ARG)
+			;胸愛撫
+		CASE 3
+			CALL NTR_MESSAGE_BUST_PET_SHOW(ARG)
+			;フェラチオ
+		CASE 4
+			CALL NTR_MESSAGE_FELLATIO_SHOW(ARG)
+			;シックスナイン
+		CASE 5
+			CALL NTR_MESSAGE_69_SHOW(ARG)
+			;素股
+		CASE 6
+			CALL NTR_MESSAGE_THUG_SHOW(ARG)
+			;セックス
+		CASE 7 TO 13
+			CALL NTR_MESSAGE_SEX_SHOW(ARG)
+			;アナルセックス
+		CASE 14 TO 20
+			CALL NTR_MESSAGE_A_SEX_SHOW(ARG)
+		CASEELSE
+			PRINTW バグです
+	ENDSELECT
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;主人空気化判定
+;ARG…同席している住人
+;戻り値…0=空気じゃない 1=キス許容 2=おさわり許容 3=奉仕許容 4=セックス許容
+@IS_AIR_MASTER(ARG)
+	#FUNCTION
+	LOCAL = 0
+	;キス許容
+	SIF CFLAG:MASTER:屈服度 > 200
+		LOCAL = 1
+	;おさわり許容
+	SIF CFLAG:MASTER:屈服度 > 400
+		LOCAL = 2
+	;奉仕許容
+	SIF CFLAG:MASTER:屈服度 > 600
+		LOCAL = 3
+	;セックス許容
+	SIF CFLAG:MASTER:屈服度 > 1000
+		LOCAL = 4
+	;住人による補正
+	IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+		LOCAL += 2
+		;寝とられ寸前
+	ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+		LOCAL += 2
+		;寝とられそう
+	ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+		LOCAL += 1
+		;恋慕で主人への好意度高い
+	ELSEIF CFLAG:ARG:屈服度 < CFLAG:ARG:好感度 && TALENT:ARG:恋慕
+		LOCAL -= 1
+	ENDIF
+	;デバッグ用
+	;LOCAL = 4
+RETURNF LOCAL
+
+;-------------------------------------------------------------------------------
+;NTR性交時体位名取得
+@NTR_GET_SEX_LAGE
+	#FUNCTIONS
+	SIF FLAG:訪問者との行為 == 7
+		RETURNF "正常位"
+	SIF FLAG:訪問者との行為 == 8
+		RETURNF "後背位"
+	SIF FLAG:訪問者との行為 == 9
+		RETURNF "騎乗位"
+	SIF FLAG:訪問者との行為 == 10
+		RETURNF "対面座位"
+	SIF FLAG:訪問者との行為 == 11
+		RETURNF "背面座位"
+	SIF FLAG:訪問者との行為 == 12
+		RETURNF "対面立位"
+	SIF FLAG:訪問者との行為 == 13
+		RETURNF "背面立位"
+	SIF FLAG:訪問者との行為 == 14
+		RETURNF "正常位"
+	SIF FLAG:訪問者との行為 == 15
+		RETURNF "後背位"
+	SIF FLAG:訪問者との行為 == 16
+		RETURNF "騎乗位"
+	SIF FLAG:訪問者との行為 == 17
+		RETURNF "対面座位"
+	SIF FLAG:訪問者との行為 == 18
+		RETURNF "背面座位"
+	SIF FLAG:訪問者との行為 == 19
+		RETURNF "対面立位"
+	SIF FLAG:訪問者との行為 == 20
+		RETURNF "背面立位"
+RETURNF "**バグ**"
+
+;-------------------------------------------------------------------------------
+;住人の訪問者に対する好感度チェック
+;ARG…チェック対象住人
+;ARGS…チェック対象好感度レベル（文字列)
+;戻り値…1:条件成立 0:条件非成立
+@NTR_CHK_FAVORABLY(ARG, ARGS)
+	#FUNCTION
+	IF ARGS == "寝取り返し寸前"
+		SIF TALENT:ARG:NTR && CFLAG:ARG:好感度 > 900
+			RETURNF 1
+	ELSEIF ARGS == "寝取り返し中"
+		SIF TALENT:ARG:NTR && CFLAG:ARG:好感度 > 500
+			RETURNF 1
+	ELSEIF ARGS == "寝取られ"
+		SIF TALENT:ARG:NTR
+			RETURNF 1
+	ELSEIF ARGS == "寝取られ寸前"
+		SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && CFLAG:ARG:屈服度 > 1000 && 1000 > CFLAG:ARG:好感度
+			RETURNF 1
+	ELSEIF ARGS == "寝取られそう"
+		SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && CFLAG:ARG:屈服度 > 1000 && 1500 > CFLAG:ARG:好感度
+			RETURNF 1
+	ELSEIF ARGS == "主人より高い"
+		SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && CFLAG:ARG:屈服度 > 1000
+			RETURNF 1
+	ELSEIF ARGS == "うふふする程度"
+		SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 * 3 / 4 && CFLAG:ARG:屈服度 > 500
+			RETURNF 1
+	ELSEIF ARGS == "奉仕する程度"
+		SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 / 2 && CFLAG:ARG:屈服度 > 400
+			RETURNF 1
+	ELSEIF ARGS == "体を触らせる程度"
+		SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 / 3 && CFLAG:ARG:屈服度 > 150
+			RETURNF 1
+	ELSEIF ARGS == "キスする程度"
+		SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 / 4 && CFLAG:ARG:屈服度 > 100
+			RETURNF 1
+	ELSE
+		PRINTFORML !!! バグ [%ARGS%]
+	ENDIF
+RETURNF 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_RESET_VISITOR_ACTION(ARG)
+	FLAG:訪問者のムード = 0
+	FLAG:訪問者との行為の終了時刻 = 0
+	FLAG:訪問者との行為 = 0
+	SIF ARG >= 0
+		CFLAG:ARG:処女喪失中 = 0
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;NTR文を表示できるか評価する。CAN_MOVE、同じ場所、FLAG:訪問者との汚れ判定に使用の32bit目で評価。
+;ARG…口上元の発生場所
+;戻り値…1:条件成立 0:条件非成立
+@NTR_CHK_VISIBLE(ARG)
+	#FUNCTION
+	SIF GETBIT(FLAG:ＮＴＲパッチ設定,32)
+		RETURNF 1
+	SIF CFLAG:MASTER:現在位置 == ARG
+		RETURNF 1
+	SIF CAN_MOVE(CFLAG:MASTER:現在位置, ARG) == 2
+		RETURNF 1
+RETURNF 0
+
+;-------------------------------------------------------------------------------
+;覗き発覚時に連続して覗いたかどうかのチェック
+;ARG…対象住人
+;戻り値…1:条件成立 0:条件非成立
+@NTR_CHK_PEEP_CONT(ARG)
+	#FUNCTION
+	SIF CFLAG:ARG:覗き発覚回数 && PREVCOM == 404 && SELECTCOM == 404
+		RETURNF 1
+RETURNF 0
+
+;-------------------------------------------------------------------------------
+;Ｖ感覚高いときの絶頂経験加算（強絶頂のようなもの）
+@NTR_V_EXP_PLUS(ARG)
+	IF ABL:ARG:Ｖ感覚 >= 2
+		IF RAND:3 == 0
+			EXP:ARG:Ｖ経験 ++
+			EXP:ARG:Ｖ絶頂経験 ++
+			EXP:ARG:絶頂経験 ++
+			EXP:ARG:浮気絶頂経験 ++
+		ENDIF
+	ELSEIF ABL:ARG:Ｖ感覚 >= 4
+		IF RAND:2 == 0
+			EXP:ARG:Ｖ経験 ++
+			EXP:ARG:Ｖ絶頂経験 ++
+			EXP:ARG:絶頂経験 ++
+			EXP:ARG:浮気絶頂経験 ++
+		ENDIF
+	ENDIF
+	IF TALENT:ARG:浮気な蜜壷
+		IF RAND:2 == 0
+			EXP:ARG:Ｖ経験 ++
+			EXP:ARG:Ｖ絶頂経験 ++
+			EXP:ARG:絶頂経験 ++
+			EXP:ARG:浮気絶頂経験 ++
+		ENDIF
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;Ａ感覚高いときの絶頂経験加算（強絶頂のようなもの）
+@NTR_A_EXP_PLUS(ARG)
+	IF ABL:ARG:Ａ感覚 >= 2
+		IF RAND:3 == 0
+			EXP:ARG:Ａ経験 ++
+			EXP:ARG:Ａ絶頂経験 ++
+			EXP:ARG:絶頂経験 ++
+			EXP:ARG:浮気絶頂経験 ++
+		ENDIF
+	ELSEIF ABL:ARG:Ａ感覚 >= 4
+		IF RAND:2 == 0
+			EXP:ARG:Ａ経験 ++
+			EXP:ARG:Ａ絶頂経験 ++
+			EXP:ARG:絶頂経験 ++
+			EXP:ARG:浮気絶頂経験 ++
+		ENDIF
+	ENDIF
+	IF TALENT:ARG:浮気な尻穴
+		IF RAND:2 == 0
+			EXP:ARG:Ａ経験 ++
+			EXP:ARG:Ａ絶頂経験 ++
+			EXP:ARG:絶頂経験 ++
+			EXP:ARG:浮気絶頂経験 ++
+		ENDIF
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;射精量による精液経験加算
+;ARG … 射精されたキャラ
+;ARG:1 … 0:口以外 1:口（飲精経験も加算)
+@NTR_SAMEN_EXP_PLUS(ARG, ARG:1)
+	LOCAL = TFLAG:精子量 / 100
+	EXP:ARG:精液経験 += LOCAL
+	EXP:ARG:浮気精液経験 += LOCAL
+	IF ARG:1 == 1
+		EXP:ARG:精飲経験 += LOCAL
+		EXP:ARG:浮気精飲経験 += LOCAL
+	ENDIF
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@NTR_SOURCE_CHECK(奴隷,調教者)
+	#DIM 奴隷
+	#DIM 調教者
+	CALL SOURCE_EXP(奴隷,調教者)
+	CALL SOURCE_快Ｃ(奴隷,調教者)
+	CALL SOURCE_快Ｖ(奴隷,調教者)
+	CALL SOURCE_快Ａ(奴隷,調教者)
+	CALL SOURCE_快Ｂ(奴隷,調教者)
+	CALL SOURCE_CVAB_EXTRA(奴隷,調教者)
+	CALL SOURCE_情愛(奴隷,調教者)
+	CALL SOURCE_性行動(奴隷,調教者)
+	CALL SOURCE_達成(奴隷,調教者)
+	CALL SOURCE_苦痛(奴隷,調教者)
+	CALL SOURCE_恐怖(奴隷,調教者)
+	CALL SOURCE_液体(奴隷,調教者)
+	CALL SOURCE_欲情(奴隷,調教者)
+	CALL SOURCE_恭順(奴隷,調教者)
+	CALL SOURCE_露出(奴隷,調教者)
+	CALL SOURCE_屈従(奴隷,調教者)
+	CALL SOURCE_歓楽(奴隷,調教者)
+	CALL SOURCE_征服(奴隷,調教者)
+	CALL SOURCE_受動(奴隷,調教者)
+	CALL SOURCE_不潔(奴隷,調教者)
+	CALL SOURCE_鬱屈(奴隷,調教者)
+	CALL SOURCE_逸脱(奴隷,調教者)
+	CALL SOURCE_反感(奴隷,調教者)
+	CALL SOURCE_EXTRA(奴隷,調教者)
+	CALL SOURCE_DOWNBASE(奴隷,調教者)
+	CALL SOURCE_ABLUP(奴隷)
+	;パラメータの増加
+	FOR LOCAL:0,0,100
+		SIF PALAMNAME:(LOCAL:0) == ""
+			CONTINUE
+		PALAM:奴隷:(LOCAL:0) += CUP:奴隷:(LOCAL:0) - CDOWN:奴隷:(LOCAL:0)
+		CUP:奴隷:(LOCAL:0) = 0
+		CDOWN:奴隷:(LOCAL:0) = 0
+	NEXT
+RETURN 0

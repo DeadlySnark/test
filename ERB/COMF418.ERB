@@ -1,0 +1,54 @@
+;-------------------------------------------------
+;鍵を購入する
+;-------------------------------------------------
+;公衆便所になった住人の貞操帯の鍵を購入するコマンド
+;
+;
+;-------------------------------------------------
+@COM418
+;購入対象選択
+
+IF EXP:MASTER:買春経験 == 0
+	PRINTFORML %NTR_NAME(0)%は小さな鍵をちらつかせ、%CALLNAME:MASTER%にも「便所」を使わせてやろうか？と笑った。
+ELSE
+	PRINTFORML %CALLNAME:MASTER%が鍵を求めると、%NTR_NAME(0)%はウチの「便所」が気に入ったようだな、と笑った。
+ENDIF
+
+FOR LOCAL,1,CHARANUM
+	IF TALENT:LOCAL:公衆便所
+		LOCAL:1 = NTR_COST_UNLOCK(LOCAL)
+		PRINTFORML [{LOCAL}] - %CALLNAME:LOCAL% (${LOCAL:1})
+	ENDIF
+NEXT
+PRINTFORML [100] - やっぱりやめる
+$INPUT_LOOP
+INPUT
+SIF 100 == RESULT
+	RETURN 1
+SIF RESULT <= 0 || CHARANUM <= RESULT
+	GOTO INPUT_LOOP
+SIF !TALENT:RESULT:公衆便所
+	GOTO INPUT_LOOP
+LOCAL = RESULT
+;購入金額
+LOCAL:1 = NTR_COST_UNLOCK(LOCAL)
+IF MONEY < LOCAL:1
+	PRINTFORMW お金が足りません。
+	GOTO INPUT_LOOP
+ENDIF
+PRINTFORMW [%CALLNAME:LOCAL%]の貞操帯の鍵を購入した。
+EXP:MASTER:買春経験++
+MONEY -= LOCAL:1
+;鍵購入
+FLAG:貞操帯鍵購入フラグ = LOCAL
+;鍵購入カウンタ
+FLAG:貞操帯鍵有効カウンタ = 4*60
+;住人の反応等
+FOR LOCAL,1,CHARANUM
+	;鍵購入反応フラグ初期化
+	CFLAG:LOCAL:NTR貞操帯反応 = 1
+NEXT
+
+RETURN 1
+
+

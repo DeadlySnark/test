@@ -1,0 +1,43 @@
+;-------------------------------------------------
+;‰½‚à‚µ‚È‚¢
+;-------------------------------------------------
+@COM462
+IF CFLAG:MASTER:Œ»ÝˆÊ’u == 900
+	IF FLAG:21 == 900
+		LOCAL = RAND:3
+		IF LOCAL == 0
+			PRINTFORM %CALLNAME:MASTER%‚ª‚Ú[‚Á‚Æ‚µ‚Ä‚¢‚é‚Æ–K–âŽÒ‚ª
+			IF CFLAG:MASTER:‹ü•ž“x >= 1000
+				PRINTFORML %CALLNAME:MASTER%‚É˜b‚µ‚©‚¯‚Ä‚«‚½
+				PRINT ‚µ‚Î‚ç‚­˜b‚µ‚Ä‚¢‚é‚Æ
+			ELSE
+				PRINTFORML %CALLNAME:MASTER%‚Æ•À‚ñ‚Åƒxƒbƒh‚ÉÀ‚Á‚½
+				PRINTFORMW —á‚Ì’²‹³‚Æ‚â‚ç‚ªŽn‚Ü‚é‚ñ‚¾‚Æ‚í‚©‚è‚Â‚Â‚à%CALLNAME:MASTER%‚Í‰½‚à‚Å‚«‚È‚©‚Á‚½
+			ENDIF
+			;CALL COM417_LOSE(FLAG:21,FLAG:22,FLAG:23)
+		ELSE
+			LOCAL = RAND:3
+			IF LOCAL == 0
+				PRINTW –K–âŽÒ‚Í–{‚ð“Ç‚ñ‚Å‚¢‚é
+			ELSEIF LOCAL == 1
+				PRINTW –K–âŽÒ‚Í’\y‚Ì’†‚ð®—‚µ‚Ä‚¢‚é
+			ELSE
+				PRINTW –K–âŽÒ‚ÍŠÏ—tA•¨‚É…‚ð—^‚¦‚Ä‚¢‚é
+			ENDIF
+		ENDIF
+	ELSEIF FLAG:21 != 900
+		PRINTFORMW %CALLNAME:MASTER%‚Í‚Ú[‚Á‚ÆŽžŠÔ‚ª‰ß‚¬‚é‚Ì‚ð‚½‚¾‘Ò‚Á‚Ä‚¢‚½
+		;CALL NTR_HOME_IN
+	ENDIF
+ELSEIF CFLAG:MASTER:Œ»ÝˆÊ’u == 901
+	IF FLAG:21 == 901
+	
+	ELSEIF FLAG:21 != 901
+		PRINT ‹xŒe’†‚à’j
+		SIF FLAG:25 > 1
+			PRINT ’B
+		PRINTFORMW ‚Í%CALLNAME:MASTER%‚Ì‘Ì‚ð–³‰“—¶‚É˜M‚Á‚Ä‚¢‚é
+	ENDIF
+ENDIF
+TIME += 10
+RETURN 0

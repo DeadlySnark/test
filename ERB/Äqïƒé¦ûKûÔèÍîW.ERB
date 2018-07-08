@@ -1,0 +1,96 @@
+;-------------------------------------------------------------------------------
+;子供の訪問関係.ERB
+;
+;追加フラグ
+;CFLAG:356 子供の訪問フラグ(成人した子供限定のフラグ)
+;  0     紅魔館へ訪問する確率が発生
+;  0未満 子供の紅魔館滞在日数
+;  0超   訪問する確率が発生するまでの残り日数
+;
+
+;-------------------------------------------------------------------------------
+;子供が紅魔館へ帰って来る処理など
+;-------------------------------------------------------------------------------
+;BEFORETRAIN.ERB
+@子供訪問_1
+;PRINTFORMW {CHARANUM}
+;子供キャラが誰もいないなら処理終了
+SIF CHARANUM <= 10
+	RETURN 0
+;成人した子供が誰か一人でも訪問しているなら処理終了
+FOR LOCAL, 10, CHARANUM
+	SIF CFLAG:LOCAL:356 < 0
+		RETURN 0
+NEXT
+
+LOCAL:2 = 0
+;確率が発生するキャラの訪問確率処理
+FOR LOCAL, 10, CHARANUM
+	;3人訪問すると終了
+	SIF LOCAL:2 == 3
+		RETURN 0
+	;成人以外はスキップ
+	SIF CFLAG:LOCAL:成長度 != 4
+		CONTINUE
+	IF CFLAG:LOCAL:356 == 0
+		;プレイヤーとの好感度が高いと確率上昇
+		IF CFLAG:LOCAL:好感度 >= 300
+			LOCAL:1 = 50
+		ELSEIF CFLAG:LOCAL:好感度 >= 150
+			LOCAL:1 = 75
+		ELSE
+			LOCAL:1 = 100
+		ENDIF
+		;PRINTFORMW {LOCAL}
+		;通常で20%の確率で訪問してくる
+		IF RAND:(LOCAL:1) < 20
+			PRINTFORMW %CALLNAME:LOCAL%が紅魔館へ遊びに来たようです。
+			;正門
+			CFLAG:LOCAL:現在位置 = 1
+			;とりあえず1日滞在処理
+			CFLAG:LOCAL:356 = -1
+			LOCAL:2 ++
+		ENDIF
+	ENDIF
+NEXT
+
+
+
+;-------------------------------------------------------------------------------
+;子供が人里へ帰って行く処理など
+;-------------------------------------------------------------------------------
+;AFTERTRA.ERB
+@子供訪問_2
+;子供キャラが誰もいないなら処理終了
+SIF CHARANUM <= 10
+	RETURN 0
+;訪問確率発生までの残り日数減少、訪問していたら残り滞在日数減少処理
+FOR LOCAL, 10, CHARANUM
+	;成人以外はスキップ
+	SIF CFLAG:LOCAL:成長度 != 4
+		CONTINUE
+	;PRINTFORMW 11
+	;帰る口上とその処理
+	IF CFLAG:LOCAL:356 == -1
+		;お持ち帰りされているなどで移動できるマップ内にいない場合、もう1日紅魔館に残る
+		IF CFLAG:LOCAL:現在位置 < 900
+			PRINTFORMW %CALLNAME:LOCAL%は里へと帰って行きました。
+			CFLAG:LOCAL:現在位置 = 951
+			CFLAG:LOCAL:356 = 10
+		ENDIF
+	;残り滞在日数減少
+	ELSEIF CFLAG:LOCAL:356 < 0
+		CFLAG:LOCAL:356 ++
+	;訪問確率発生までの残り日数減少
+	ELSEIF CFLAG:LOCAL:356 > 0
+		CFLAG:LOCAL:356 --
+	ENDIF
+NEXT
+
+
+
+
+
+
+
+

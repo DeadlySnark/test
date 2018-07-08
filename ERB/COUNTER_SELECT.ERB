@@ -1,0 +1,243 @@
+@POSITION_OCCUPATION(ARG)
+#FUNCTION
+FOR LOCAL,1,CHARANUM
+	SIF TARGET:LOCAL <= 0
+		CONTINUE
+	SIF TCVAR:(TARGET:LOCAL):位置関係 == ARG
+		RETURNF 1
+NEXT
+
+@EVENT_COUNTER(ARG,ARG:1)
+;----------------------------------------------------
+;キャンセル
+;----------------------------------------------------
+;ARG 対象キャラ
+;ARG:1 行動順
+SIF SELECTCOM == 351 || SELECTCOM == 400
+	RETURN 0
+SIF ARG <= 0
+	RETURN 0
+SIF CFLAG:ARG:睡眠
+	RETURN 0
+;訪問者の存在で判定
+IF CFLAG:ARG:現在位置 == FLAG:訪問者の現在位置
+	;NTRだとカウンター抑制
+	SIF TALENT:ARG:NTR
+		RETURN 0
+	;主人が空気だと抑制
+	SIF IS_AIR_MASTER(ARG)
+		RETURN 0
+	;訪問者の方が影響が大きいとある程度抑制
+	SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && RAND:2
+		RETURN 0
+ENDIF
+
+TCVAR:ARG:30 ++
+SIF TCVAR:ARG:30 > 1
+	RETURN 0
+
+VARSET LOCAL
+
+;----------------------------------------------------
+;特殊な処理
+;----------------------------------------------------
+;うふふ中
+IF CFLAG:ARG:うふふ == 1
+	CALL EVENT_COUNTER_REACTION(ARG,ARG:1)
+	RETURN 0
+ENDIF
+;弱味
+IF ARG:1 == 1 && CFLAG:ARG:うふふ == 2 && CFLAG:ARG:MASTERの弱味 && BASE:ARG:満足 == MAXBASE:ARG:満足
+	CALL EVENT_COUNTER_PUNISHMENT(ARG,ARG:1)
+	FOR LOCAL,0,CHARANUM
+		CFLAG:LOCAL:うふふ = 0
+		CALL CLOTHES_RESET(LOCAL)
+		CALL CLOTHES_SETTING_TRAIN(LOCAL)
+	NEXT
+	RETURN 0
+ENDIF
+
+;----------------------------------------------------
+;通常
+;----------------------------------------------------
+;ソフトなカウンター
+SIF TFLAG:102 == 1
+	LOCAL:301 = 100
+SIF TCVAR:ARG:130 < 1
+	LOCAL:301 = 0
+;LOCAL:301=ソフト LOCAL:302=着衣 LOCAL:303=脱衣愛撫 LOCAL:304=脱衣強要
+;ガチセクハラ
+IF TFLAG:102 == 3
+	LOCAL:301 = 0
+	LOCAL:302 = 100
+	LOCAL:303 = 80
+	;脱衣により着衣セクハラは制限される
+	SIF TEQUIP:PLAYER:0 < 2
+		LOCAL:302 -= 10
+	SIF TEQUIP:PLAYER:1 < 1
+		LOCAL:302 -= 10
+	;理性とムードによりガチセクハラが増える
+	IF BASE:ARG:ムード > 1000
+		LOCAL:303 += 15	
+	ELSEIF BASE:ARG:ムード > 500
+		LOCAL:303 += 10
+	ENDIF
+	IF BASE:ARG:理性 <= 0
+		LOCAL:303 += 15
+	ELSEIF BASE:ARG:理性 <= 500
+		LOCAL:303 += 10
+	ENDIF
+ENDIF
+LOCAL:304 = LOCAL:303
+LOCAL:305 = LOCAL:303
+
+
+
+;恥じらい成分
+LOCAL:200 = TALENT:ARG:目立ちたがり + TALENT:ARG:自己愛 - TALENT:ARG:自制心 - TALENT:ARG:貞操 - 2 * TALENT:ARG:羞恥心
+;誘惑成分
+LOCAL:201 = TALENT:ARG:魅力 + TALENT:ARG:魅惑 + TALENT:ARG:謎の魅力 + TALENT:ARG:バストサイズ + TALENT:ARG:体型 - TALENT:ARG:貞操 + TALENT:ARG:小悪魔 - TALENT:ARG:幼稚
+;積極性
+LOCAL:202 = TALENT:ARG:度胸 + TALENT:ARG:陽気／陰気 - TALENT:ARG:無関心 - TALENT:ARG:感情乏しい + TALENT:ARG:性的興味 - TALENT:ARG:一線越えない + TALENT:ARG:献身的
+;タチ成分
+LOCAL:203 = TALENT:ARG:応答 + TALENT:ARG:プライド + TALENT:ARG:献身的 + 2 * (TALENT:ARG:サド - TALENT:ARG:マゾ)
+
+;50～69 脱衣セクハラ(愛撫)
+SIF LOCAL:303
+	LOCAL:303 += 2 * (LOCAL:203 + LOCAL:202)
+;70～79 脱衣セクハラ(強要)
+SIF LOCAL:304
+	LOCAL:304 += 2 * (LOCAL:201 - LOCAL:202)
+;80～99 性交
+SIF LOCAL:305
+	LOCAL:305 += 2 * (LOCAL:203 + LOCAL:202)
+
+;------------------------------------------
+;10～29 ソフト
+;------------------------------------------
+;色っぽい仕草
+LOCAL:10 = 10 + LOCAL:201 - LOCAL:200
+;見つめる
+LOCAL:11 = 10 + LOCAL:200
+;体を摺り寄せる
+LOCAL:12 = 10 + LOCAL:201 + LOCAL:202
+;スカートを捲る
+LOCAL:13 = 10 + LOCAL:202 + LOCAL:203 - LOCAL:200
+;耳元に息を吹きかける
+LOCAL:14 = 10 + LOCAL:201 + LOCAL:202
+;尻を撫でる
+LOCAL:15 = 10 + LOCAL:202 + LOCAL:203
+
+FOR LOCAL,10,30
+	LOCAL:LOCAL *= LOCAL:301
+NEXT
+;------------------------------------------
+;30～49 着衣セクハラ
+;------------------------------------------
+;キス
+LOCAL:30 = 10 + LOCAL:202
+;後ろから抱きつく
+LOCAL:31 = 10 + LOCAL:200 - LOCAL:202
+;前から抱きつく
+LOCAL:32 = 10 + LOCAL:201 + LOCAL:202
+;胸を揉ませる
+LOCAL:33 = 10 + LOCAL:201 - LOCAL:202
+;股間をまさぐる
+LOCAL:34 = 10 + LOCAL:202 + LOCAL:203
+;スカートの中を見せる
+LOCAL:35 = 10 + LOCAL:200 + LOCAL:201
+;後ろから胸もみもみ
+LOCAL:36 = 10 + LOCAL:202 + LOCAL:203
+
+FOR LOCAL,30,50
+	LOCAL:LOCAL *= LOCAL:302
+NEXT
+
+;------------------------------------------
+;50～69 脱衣セクハラ(愛撫)
+;------------------------------------------
+;手淫
+LOCAL:50 = 10 + 2 * TALENT:ARG:器用な指 + ABL:ARG:指 + BASE:MASTER:勃起 / 500
+;フェラチオ、クンニ
+LOCAL:51 = 10 + TALENT:ARG:汚臭耐性 + 2 * TALENT:ARG:舌使い + ABL:ARG:舌 + BASE:MASTER:勃起 / 500
+;素股,貝合わせ
+LOCAL:52 = 10 + ABL:ARG:腰 + 2 * TALENT:ARG:濡れやすさ + BASE:MASTER:勃起 / 500
+;パイズリ
+LOCAL:53 = 10 + TALENT:ARG:バストサイズ + 2 * TALENT:ARG:淫乳 + ABL:ARG:胸 + BASE:MASTER:勃起 / 500
+;足コキ
+LOCAL:54 = 10 + 2 * TALENT:ARG:サド + MIN(ABL:ARG:サドっ気 , 5) + BASE:MASTER:勃起 / 500
+;アナル愛撫
+LOCAL:55 = 10 + 2 * TALENT:ARG:器用な指 + ABL:ARG:指
+;アナル舐め
+LOCAL:56 = 10 + 2 * TALENT:ARG:舌使い + ABL:ARG:舌 + MIN(TALENT:ARG:汚臭耐性, 0)
+;指挿入
+LOCAL:57 = 10 + 2 * TALENT:ARG:器用な指 + ABL:ARG:指
+;胸愛撫
+LOCAL:58 = 10 + 2 * TALENT:ARG:器用な指 + ABL:ARG:指
+;乳首吸い
+LOCAL:59 = 10 + 2 * TALENT:ARG:舌使い + ABL:ARG:舌 + 2 * TALENT:ARG:幼稚
+;ディープキス
+LOCAL:60 = 10 + 2 * TALENT:ARG:舌使い + ABL:ARG:舌
+
+
+FOR LOCAL,50,70
+	LOCAL:LOCAL = LOCAL:LOCAL * LOCAL:303 * (90 + RAND:21) / 100
+NEXT
+;------------------------------------------
+;70～79 脱衣セクハラ(強要)
+;------------------------------------------
+;クンニ
+LOCAL:70 = 10 + ABL:ARG:Ｃ感覚
+;フェラチオ
+LOCAL:71 = 10 + ABL:ARG:Ｃ感覚
+;アナル奉仕
+LOCAL:72 = 10 + ABL:ARG:Ａ感覚
+;ぱふぱふ
+LOCAL:73 = 10 + ABL:ARG:Ｂ感覚
+;乳合わせ
+LOCAL:74 = 10 + ABL:ARG:Ｂ感覚
+;タワシ洗い
+LOCAL:75 = 10 + ABL:ARG:Ｃ感覚
+
+
+FOR LOCAL,70,80
+	LOCAL:LOCAL = LOCAL:LOCAL * LOCAL:304 * (90 + RAND:21) / 100
+NEXT
+
+;------------------------------------------
+;80～99 性交
+;------------------------------------------
+LOCAL:305 = 0
+;正常位
+LOCAL:80 = 10 + ABL:ARG:Ｃ感覚
+LOCAL:81 = MIN(0, (BASE:ARG:5 - 500) / 100)
+LOCAL:82 = MIN(0, (BASE:ARG:5 - 500) / 100)
+LOCAL:83 = MIN(0, (BASE:ARG:5 - 500) / 100)
+
+FOR LOCAL,80,99
+	LOCAL:LOCAL = LOCAL:LOCAL * LOCAL:305 * (90 + RAND:21) / 100
+NEXT
+
+;ランダマイズ
+FOR LOCAL,1,100
+	LOCAL:LOCAL = RAND:(MAX(LOCAL:LOCAL,1))
+NEXT
+
+;実行判定
+FOR LOCAL,1,100
+	LOCAL:LOCAL *= ACTABLE(ARG,LOCAL)
+NEXT
+
+;------------------------------------------
+;実行判定
+;------------------------------------------
+LOCAL:300 = 0
+FOR LOCAL,1,100
+	IF LOCAL:LOCAL > LOCAL:300
+		LOCAL:300 = LOCAL:LOCAL
+		LOCAL:301 = LOCAL
+	ENDIF
+NEXT
+
+SIF LOCAL:300 > 0
+	TCVAR:ARG:20 = LOCAL:301

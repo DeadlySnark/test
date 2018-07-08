@@ -1,0 +1,321 @@
+;位置関係
+;部屋名出力
+@GETPLACENAME(ARG)
+#FUNCTIONS
+SELECTCASE ARG
+	CASE 1
+		RETURNF "正門"
+	CASE 2
+		RETURNF "広間"
+	CASE 3
+		RETURNF "中央廊下"
+	CASE 4
+		RETURNF "西廊下"
+	CASE 5
+		RETURNF "東廊下"
+	CASE 6
+		RETURNF "食堂"
+	CASE 7
+		RETURNF "厨房"
+	CASE 8
+		RETURNF @"%CALLNAME:MASTER%私室"
+	CASE 9
+		RETURNF "ゾンビ部屋"
+	CASE 10
+		RETURNF "空私室"
+	CASE 11
+		RETURNF "燐私室"
+	CASE 12
+		RETURNF "こいし私室"
+	CASE 13
+		RETURNF "さとり私室"
+	CASE 14
+		RETURNF "書室"
+	CASE 15
+		RETURNF "浴室"
+	CASE 16
+		RETURNF "庭"
+	CASE 17
+		RETURNF "物置"
+	CASE 18
+		RETURNF "屋内トイレ"
+	CASE 19
+		RETURNF "屋外トイレ"
+	CASE 20
+		RETURNF "旧地獄街道"
+	CASE 21
+		RETURNF "公衆トイレ"
+	CASE 22
+		RETURNF "銭湯"
+	CASE 23
+		RETURNF "風穴の底"
+	CASE 30
+		RETURNF "勇儀宅・玄関"
+	CASE 31
+		RETURNF "廊下(勇儀宅)"
+	CASE 32
+		RETURNF "リビング(勇儀宅)"
+	CASE 33
+		RETURNF "寝室(勇儀宅)"
+	CASE 34
+		RETURNF "キッチン(勇儀宅)"
+	CASE 35
+		RETURNF "浴室(勇儀宅)"
+	CASE 36
+		RETURNF "庭(勇儀宅)"
+	CASE 37
+		RETURNF "トイレ(勇儀宅)"
+	CASE 40
+		RETURNF "パルスィ宅・玄関"
+	CASE 41
+		RETURNF "廊下(パルスィ宅)"
+	CASE 42
+		RETURNF "リビング(パルスィ宅)"
+	CASE 43
+		RETURNF "寝室(パルスィ宅)"
+	CASE 44
+		RETURNF "キッチン(パルスィ宅)"
+	CASE 45
+		RETURNF "浴室(パルスィ宅)"
+	CASE 46
+		RETURNF "庭(パルスィ宅)"
+	CASE 47
+		RETURNF "トイレ(パルスィ宅)"
+	CASE 50
+		RETURNF "ヤマメ宅・玄関"
+	CASE 51
+		RETURNF "廊下(ヤマメ宅)"
+	CASE 52
+		RETURNF "リビング(ヤマメ宅)"
+	CASE 53
+		RETURNF "寝室(ヤマメ宅)"
+	CASE 54
+		RETURNF "キッチン(ヤマメ宅)"
+	CASE 55
+		RETURNF "浴室(ヤマメ宅)"
+	CASE 56
+		RETURNF "庭(ヤマメ宅)"
+	CASE 57
+		RETURNF "トイレ"
+	CASE 60
+		RETURNF "キスメ宅・玄関"
+	CASE 61
+		RETURNF "廊下(キスメ宅)"
+	CASE 62
+		RETURNF "リビング(キスメ宅)"
+	CASE 63
+		RETURNF "寝室(キスメ宅)"
+	CASE 64
+		RETURNF "キッチン(キスメ宅)"
+	CASE 65
+		RETURNF "浴室(キスメ宅)"
+	CASE 66
+		RETURNF "庭(キスメ宅)"
+	CASE 67
+		RETURNF "トイレ(キスメ宅)"
+	CASE 70
+		RETURNF "空き家・玄関"
+	CASE 71
+		RETURNF "廊下"
+	CASE 72
+		RETURNF "リビング"
+	CASE 73
+		RETURNF "寝室"
+	CASE 74
+		RETURNF "キッチン"
+	CASE 75
+		RETURNF "浴室"
+	CASE 76
+		RETURNF "庭"
+	CASE 77
+		RETURNF "トイレ"
+	CASE 900
+		RETURNF "訪問者宅"
+	CASE 901
+		RETURNF "売春用の部屋"
+	CASE 950
+		RETURNF "永琳診療所"
+	CASE 951
+		RETURNF "人間の里"
+ENDSELECT
+
+;-------------------------------------------------
+;関数名:NTR_GETPLACENAME
+;訪問者の現在位置を返す
+;MASTERから見えない位置の場合"あなたの目の届かない場所"を返す
+;-------------------------------------------------
+@NTR_GETPLACENAME(ARG)
+#FUNCTIONS
+;訪問者位置筒抜け
+IF GETBIT(FLAG:ＮＴＲパッチ設定,31)
+	RETURNF GETPLACENAME(ARG)
+;訪問者位置隠蔽
+ELSE
+	IF CFLAG:MASTER:現在位置 != FLAG:訪問者の現在位置 && CAN_MOVE(CFLAG:MASTER:現在位置, FLAG:訪問者の現在位置) != 2
+	;IF CAN_MOVE(CFLAG:MASTER:現在位置, FLAG:訪問者の現在位置) != 2
+		RETURNF CALLNAME:MASTER + "の目の届かない場所"
+	ELSE
+		RETURNF GETPLACENAME(ARG)
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;関数名:IN_ROOM
+;部屋の中で特定要素での最低・最高を持つキャラを取得
+;ARGS MAXかMINかを選択
+;ARG 部屋の番号
+;ARGS:1 対象となる変数の名前
+;ARG:1 変数の番号
+;-------------------------------------------------
+@IN_ROOM, ARGS, ARG, ARGS:1, ARG:1
+#FUNCTION
+VARSET LOCAL, 0
+SELECTCASE ARGS:1
+	CASE "CFLAG"
+		FOR LOCAL, 1, CHARANUM
+			SIF CFLAG:LOCAL:現在位置 != ARG
+				CONTINUE
+			IF LOCAL:3++ == 0
+				LOCAL:1 = CFLAG:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF ARGS == "MAX" && LOCAL:1 < CFLAG:LOCAL:(ARG:1)
+				LOCAL:1 = CFLAG:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF ARGS == "MIN" && LOCAL:1 > CFLAG:LOCAL:(ARG:1)
+				LOCAL:1 = CFLAG:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF LOCAL:1 == CFLAG:LOCAL:(ARG:1) && RAND:2
+				LOCAL:1 = CFLAG:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ENDIF
+		NEXT
+		RETURNF LOCAL:2
+	CASE "TCVAR"
+		FOR LOCAL, 1, CHARANUM
+			SIF CFLAG:LOCAL:現在位置 != ARG
+				CONTINUE
+			IF LOCAL:3++ == 0
+				LOCAL:1 = TCVAR:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF ARGS == "MAX" && LOCAL:1 < TCVAR:LOCAL:(ARG:1)
+				LOCAL:1 = TCVAR:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF ARGS == "MIN" && LOCAL:1 > TCVAR:LOCAL:(ARG:1)
+				LOCAL:1 = TCVAR:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF LOCAL:1 == TCVAR:LOCAL:(ARG:1) && RAND:2
+				LOCAL:1 = TCVAR:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ENDIF
+		NEXT
+		RETURNF LOCAL:2
+	CASE "ABL"
+		FOR LOCAL, 1, CHARANUM
+			SIF CFLAG:LOCAL:現在位置 != ARG
+				CONTINUE
+			IF LOCAL:3++ == 0
+				LOCAL:1 = ABL:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF ARGS == "MAX" && LOCAL:1 < ABL:LOCAL:(ARG:1)
+				LOCAL:1 = ABL:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF ARGS == "MIN" && LOCAL:1 > ABL:LOCAL:(ARG:1)
+				LOCAL:1 = ABL:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF LOCAL:1 == ABL:LOCAL:(ARG:1) && RAND:2
+				LOCAL:1 = ABL:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ENDIF
+		NEXT
+		RETURNF LOCAL:2
+	CASE "TALENT"
+		FOR LOCAL, 1, CHARANUM
+			SIF CFLAG:LOCAL:現在位置 != ARG
+				CONTINUE
+			IF LOCAL:3++ == 0
+				LOCAL:1 = TALENT:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF ARGS == "MAX" && LOCAL:1 < TALENT:LOCAL:(ARG:1)
+				LOCAL:1 = TALENT:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF ARGS == "MIN" && LOCAL:1 > TALENT:LOCAL:(ARG:1)
+				LOCAL:1 = TALENT:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ELSEIF LOCAL:1 == TALENT:LOCAL:(ARG:1) && RAND:2
+				LOCAL:1 = TALENT:LOCAL:(ARG:1)
+				LOCAL:2 = LOCAL
+			ENDIF
+		NEXT
+		RETURNF LOCAL:2
+ENDSELECT
+
+;部屋にいる人数を求める
+;ARG … 対象の部屋
+;ARG:1 … 0:MASTERは含めない 1:MASTERも含める
+;ARG:2 … 0:訪問者は含めない 1:訪問者も含める
+;ARG:3 … 0:魔理沙は含めない 1:魔理沙も含める
+@GET_N_IN_ROOM(ARG, ARG:1, ARG:2, ARG:3)
+#FUNCTION
+LOCAL:1 = 0
+;住人
+FOR LOCAL, 1, CHARANUM
+	SIF CFLAG:LOCAL:現在位置 == ARG
+		LOCAL:1 ++
+NEXT
+;MASTER
+SIF ARG:1 && FLAG:訪問者の現在位置 == ARG
+	LOCAL:1 ++
+;訪問者
+;魔理沙
+SIF ARG:1 && FLAG:侵入者の現在位置 == ARG
+	LOCAL:1 ++
+
+RETURNF LOCAL:1
+
+
+@MAXROOM()
+#FUNCTION
+RETURNF 26
+
+;ベッドがある部屋
+@BEDROOM(ARG)
+#FUNCTION
+SELECTCASE ARG
+	CASE 8,10,11,12,13,33,43,53,63,73
+		RETURNF 1
+	CASE 15,22,35,45,55,65,75
+		;プレイマット
+		SIF ITEM:20
+			RETURNF 1
+ENDSELECT
+
+
+;お風呂がある部屋
+@BATHROOM(ARG)
+#FUNCTION
+SELECTCASE ARG
+	CASE 15,22,35,45,55,65,75
+		RETURNF 1
+ENDSELECT
+
+
+;厨房がある部屋
+@KITCHEN(ARG)
+#FUNCTION
+SELECTCASE ARG
+	CASE 7,34,54,64,74
+		RETURNF 1
+ENDSELECT
+
+;見通しがいい場所
+;戻り値2 野外プレイ 1室内
+@OPENPLACE(ARG)
+#FUNCTION
+SELECTCASE ARG
+	;庭、正門
+	CASE 1,16,20,26,30,36,40,46,50,56,60,66,70,76
+		RETURNF 2
+	;広間,踊り場,廊下
+	CASE 2,3,4,5,31,41,51,61,71
+		RETURNF 1
+ENDSELECT

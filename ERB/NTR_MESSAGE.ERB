@@ -1,0 +1,2001 @@
+;--------------------------------------------------
+;寝取られパッチ汎用メッセージ
+;NTR.ERBから地の文の部分を関数化したもの
+;キャラ固有のメッセージと置換しやすくするため
+;関数名に _W_ を含むものは主人同席メッセージ
+;--------------------------------------------------
+
+;訪問者の名前
+;ARG … 0:"訪問者"
+;       1:"恋人以外の男", "恋人ではない男"等、恋慕持ち前提の表現
+;       2:"愛してもいないの男", "好きでもない男"等、恋慕持ち前提ではない表現
+;       3:"男" 文中で"男"だけ使用しているケース用
+;       4:"彼" 文中で"彼"だけ使用しているケース用
+;"訪問者"を"ふたなりゆかりん"等に置換している場合、ARG=1,2,3の場合の
+;"男"を"相手"とかに変換すると違和感が少ないかも。
+;戻り値 … 地の文における訪問者呼称
+@NTR_NAME(ARG)
+#FUNCTIONS
+SELECTCASE ARG
+	;固定
+	CASE 0
+		RETURNF "訪問者"
+	;恋慕持ち前提の表現
+	CASE 1
+		IF RAND:3 == 0
+			RETURNF "恋人以外の男"
+		ELSEIF RAND:2 == 0
+			RETURNF "恋人ではない男"
+		ELSE
+			RETURNF "想い人以外の男"
+		ENDIF
+	;恋慕持ち前提ではない表現
+	CASE 2
+		IF RAND:3 == 0
+			RETURNF "好きでもない男"
+		ELSEIF RAND:2 == 0
+			RETURNF "愛してもいない男"
+		ELSE
+			RETURNF "恋人でもない男"
+		ENDIF
+	;固定
+	CASE 3
+		RETURNF "男"
+	;固定
+	CASE 4
+		RETURNF "彼"
+	;failsafe
+	CASEELSE
+		RETURNF "訪問者"
+ENDSELECT
+
+;NTR_NAME()の簡易版：「男」限定
+@NTR_OTOKO()
+#FUNCTIONS
+RETURNF NTR_NAME(3)
+
+;NTR_NAME()の簡易版：「彼」限定
+@NTR_KARE()
+#FUNCTIONS
+RETURNF NTR_NAME(4)
+
+;==================================================
+;訪問者宅から帰ってきた際
+;==================================================
+@NTR_MESSAGE_0(ARG)
+;公衆便所
+IF TALENT:ARG:公衆便所
+
+	PRINTFORML 明らかに多数の男に犯されたのが見て取れる
+	PRINTFORMW 髪にこびり付いた白い粘液、衣服は所々破れ、足元には膣内から大量の精液が零れ落ちている
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	PRINTFORML %CALLNAME:ARG%はうつろな目をしてふらふらとおぼつかない足取りで部屋に戻っていった。
+	PRINTFORMW 所々乱れた着衣からは性行為の名残といえる濃厚な臭いが漂っていた。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	PRINTFORML %CALLNAME:ARG%はうつろな目をしてふらふらとおぼつかない足取りで部屋に戻っていった。
+	PRINTFORMW 所々乱れた着衣からは性行為の名残といえる濃厚な臭いが漂っていた。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	PRINTFORML %CALLNAME:ARG%は人目を避けるように部屋へと駆けていった。
+	PRINTFORMW 所々乱れた着衣からは性行為の名残といえる濃厚な臭いが漂っていた。
+
+ELSE
+
+	PRINTFORML %CALLNAME:ARG%は人目を避けるように部屋へと駆けていった。
+	PRINTFORMW 所々乱れた着衣からは性行為の名残といえる臭いが漂っていた。
+
+ENDIF
+;ローター挿入
+IF CFLAG:ARG:ローター挿入 || CFLAG:ARG:ローターA挿入
+	PRINTFORMW 乱れた服の下からは低くうねる様な音が聞こえている。
+ENDIF
+
+RETURN 0
+
+;==================================================
+;訪問者と会話
+;==================================================
+;主人は同席していない
+@NTR_MESSAGE_1_0(ARG)
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%と話をしているようだ
+RETURN 0
+
+;主人同席
+@NTR_MESSAGE_1_1(ARG)
+PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%も交えて話をしている
+RETURN 0
+
+;==================================================
+;訪問者とキス
+;==================================================
+;開始
+@NTR_MESSAGE_2_0(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%と%CALLNAME:ARG%がキスしている
+SIF NTR_CHK_PEEP_CONT(ARG)
+	PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%の視線を意識して、重なっている唇がよく見えるよう首の角度を変えた
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_2_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%と%CALLNAME:ARG%がキスしている
+SIF NTR_CHK_PEEP_CONT(ARG)
+	PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%の視線を意識して、重なっている唇がよく見えるよう首の角度を変えた
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_2_2(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%と%CALLNAME:ARG%が唇を離すと混ざり合った唾液が糸を引いた
+SIF NTR_CHK_PEEP_CONT(ARG)
+	PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%の視線を意識して、唇を離す際に伸ばした舌を絡め合わせた
+
+RETURN 0
+
+;開始(主人同席)
+@NTR_MESSAGE_W_2_0(ARG)
+
+;PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%と%CALLNAME:ARG%がキスしている
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%と唇を重ねた
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%と唇を重ねた
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%の唇を奪った
+ELSEIF NTR_CHK_FAVORABLY(ARG, "奉仕する程度")
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%の唇を奪った
+ELSE
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%の唇を奪った
+ENDIF
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_W_2_1(ARG)
+
+;PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%と%CALLNAME:ARG%がキスしている
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%と舌を絡め合っている
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%と舌を絡め合っている
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%と舌を絡め合っている
+ELSEIF NTR_CHK_FAVORABLY(ARG, "奉仕する程度")
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%と舌を絡めている
+ELSE
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で%CALLNAME:ARG%の唇を奪っている
+ENDIF
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_W_2_2(ARG)
+
+PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%と%CALLNAME:ARG%が唇を離すと混ざり合った唾液が糸を引いた
+
+RETURN 0
+
+;==================================================
+;愛撫
+;==================================================
+;開始
+@NTR_MESSAGE_3_0(ARG)
+
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の体を丹念に愛撫している
+ELSE
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は嫌がる%CALLNAME:ARG%の体を丹念に愛撫している
+ENDIF
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_3_1(ARG)
+
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は与えられる快楽に身をゆだねあえいでいる
+ELSE
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は与えられる快楽にあえいでいる
+ENDIF
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_3_2(ARG)
+
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%が%CALLNAME:ARG%の秘所から指を離すと、
+	IF PALAM:ARG:潤滑 > 5000
+		PRINTW そこはぐしょぐしょに濡れていた
+	ELSEIF PALAM:ARG:潤滑 <= 5000
+		PRINTW そこからは愛液が垂れ、零れ落ちた
+	ENDIF
+ELSE
+	PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%が%CALLNAME:ARG%の秘所から指を離すと、
+	IF PALAM:ARG:潤滑 > 5000
+		PRINTW そこはぐしょぐしょに濡れていた
+	ELSEIF PALAM:ARG:潤滑 <= 5000
+		PRINTW そこからは愛液が垂れ、零れ落ちた
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;開始(主人同席)
+@NTR_MESSAGE_W_3_0(ARG)
+
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%は%CALLNAME:ARG%の体を丹念に愛撫している
+ELSE
+	PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%は嫌がる%CALLNAME:ARG%の体を丹念に愛撫している
+ENDIF
+
+RETURN 0
+
+;継続(主人同席)
+@NTR_MESSAGE_W_3_1(ARG)
+
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は与えられる快楽に身をゆだねあえいでいる
+ELSE
+	PRINTFORMW %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は与えられる快楽にあえいでいる
+ENDIF
+
+RETURN 0
+
+;終了(主人同席)
+@NTR_MESSAGE_W_3_2(ARG)
+
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORM %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%が%CALLNAME:ARG%の秘所から指を離すと、
+	IF PALAM:ARG:潤滑 > 5000
+		PRINTW そこはぐしょぐしょに濡れていた
+	ELSEIF PALAM:ARG:潤滑 <= 5000
+		PRINTW そこからは愛液が垂れ、零れ落ちた
+	ENDIF
+ELSE
+	PRINTFORM %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%が%CALLNAME:ARG%の秘所から指を離すと、
+	IF PALAM:ARG:潤滑 > 5000
+		PRINTW そこはぐしょぐしょに濡れていた
+	ELSEIF PALAM:ARG:潤滑 <= 5000
+		PRINTW そこからは愛液が垂れ、零れ落ちた
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;==================================================
+;胸愛撫
+;==================================================
+;開始
+@NTR_MESSAGE_4_0(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の%OPPAI_DESCRIPTION(ARG)%
+IF TALENT:ARG:体型 < 0
+	PRINTW を優しく撫でるように触れている
+ELSE
+	PRINTW を揉みしだいている
+ENDIF
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_4_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は与えられる快楽にあえいでいる
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_4_2(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%が%CALLNAME:ARG%の胸から手を離すと、%CALLNAME:ARG%は紅潮し、続きを求めているようだった
+
+RETURN 0
+
+;開始(主人同席)
+@NTR_MESSAGE_W_4_0(ARG)
+
+PRINTFORM %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%は%CALLNAME:ARG%の%OPPAI_DESCRIPTION(ARG)%
+IF TALENT:ARG:体型 < 0
+	PRINTW を優しく撫でるように触れている
+ELSE
+	PRINTW を揉みしだいている
+ENDIF
+
+RETURN 0
+
+;継続(主人同席)
+@NTR_MESSAGE_W_4_1(ARG)
+
+PRINTFORMW %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は与えられる快楽にあえいでいる
+
+RETURN 0
+
+;終了(主人同席)
+@NTR_MESSAGE_W_4_2(ARG)
+
+PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%が%CALLNAME:ARG%の胸から手を離すと、%CALLNAME:ARG%は紅潮し、続きを求めているようだった
+
+RETURN 0
+
+;==================================================
+;フェラチオ
+;==================================================
+
+;開始
+@NTR_MESSAGE_5_0(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINT 慈しむような表情で、
+;淫乱か娼婦
+SIF TALENT:ARG:淫乱
+	PRINT 自ら
+PRINTFORMW %NTR_NAME(0)%のペニスに舌を這わせ始めた
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_5_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は%NTR_NAME(0)%の反応を伺いながら懸命に舌を動かしている
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_5_2(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の口にたっぷりと射精してからペニスを抜き、ペニスに付着した精液を%CALLNAME:ARG%に舐め取らせた…
+
+RETURN 0
+
+;開始(主人同席)
+@NTR_MESSAGE_W_5_0(ARG)
+
+PRINTFORM %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINT 慈しむような表情で、
+;淫乱か娼婦
+SIF TALENT:ARG:淫乱
+	PRINT 自ら
+PRINTFORMW %NTR_NAME(0)%のペニスに舌を這わせ始めた
+
+RETURN 0
+
+;継続(主人同席)
+@NTR_MESSAGE_W_5_1(ARG)
+
+PRINTFORMW %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は%NTR_NAME(0)%の反応を伺いながら懸命に舌を動かしている
+
+RETURN 0
+
+;終了(主人同席)
+@NTR_MESSAGE_W_5_2(ARG)
+
+PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%は%CALLNAME:ARG%の口にたっぷりと射精してからペニスを抜き、ペニスに付着した精液を%CALLNAME:ARG%に舐め取らせた…
+
+RETURN 0
+
+;==================================================
+;シックスナイン
+;==================================================
+;開始
+@NTR_MESSAGE_6_0(ARG)
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%と互いの性器を舐めあいながら膣口に指を挿入した
+RETURN 0
+
+;継続
+@NTR_MESSAGE_6_1(ARG)
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%と%CALLNAME:ARG%は互いの性器を舐めあいながら快楽を与え合っている
+RETURN 0
+
+;終了
+@NTR_MESSAGE_6_2(ARG)
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の口にたっぷりと射精した。
+	PRINTFORMW %NTR_NAME(0)%がペニスを抜くと、%CALLNAME:ARG%は自ら進んで舌をのばしてペニスに付着した精液を舐め取った…
+ELSE
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の口にたっぷりと射精してからペニスを抜き、ペニスに付着した精液を%CALLNAME:ARG%に舐め取らせた…
+ENDIF
+RETURN 0
+
+;開始(主人同席)
+@NTR_MESSAGE_W_6_0(ARG)
+PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%は%CALLNAME:ARG%と互いの性器を舐めあいながら膣口に指を挿入した
+RETURN 0
+
+;継続(主人同席)
+@NTR_MESSAGE_W_6_1(ARG)
+PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%と%CALLNAME:ARG%は互いの性器を舐めあいながら快楽を与え合っている
+RETURN 0
+
+;終了(主人同席)
+@NTR_MESSAGE_W_6_2(ARG)
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%は%CALLNAME:ARG%の口にたっぷりと射精した。
+	PRINTFORMW %NTR_NAME(0)%がペニスを抜くと、%CALLNAME:ARG%は自ら進んで舌をのばしてペニスに付着した精液を舐め取った…
+ELSE
+	PRINTFORMW %CALLNAME:MASTER%の目の前で%NTR_NAME(0)%は%CALLNAME:ARG%の口にたっぷりと射精してからペニスを抜き、ペニスに付着した精液を%CALLNAME:ARG%に舐め取らせた…
+ENDIF
+RETURN 0
+
+;==================================================
+;訪問者と性交（正常位／汎用）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_8_0_0(ARG)
+
+IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+	PRINTFORML 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は仰向けに寝かせた%CALLNAME:ARG%の足を開き亀頭を浅く挿入してから、男を知らない%MSG_SLIT(ARG)%を貫いていった…
+	SIF CFLAG:ARG:21 > CFLAG:ARG:2
+		PRINTFORML %CALLNAME:ARG%は痛みに耐えながら%NTR_NAME(0)%にきゅっと抱きついた…
+ELSE
+	PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は仰向けに寝かせた%CALLNAME:ARG%の
+	SIF TEQUIP:ARG:0 & 2
+		PRINTFORM %SHOW_BOTTOM(ARG,2)%をずらし、
+	PRINTFORML %MSG_SLIT(ARG)%にペニスをあてがい貫いた…
+ENDIF
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+	PRINTFORML %CALLNAME:ARG%は痛みに耐えながら%NTR_NAME(0)%にきゅっと抱きついた…
+;寝取り返したケース
+IF !TALENT:ARG:NTR && EXP:ARG:NTR陥落経験
+	IF TALENT:ARG:浮気な蜜壷
+		PRINTFORML %CALLNAME:ARG%の蜜壷は%NTR_NAME(0)%のペニスを忘れることができないかのようだ…
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の陵辱にふたたびあの悦びを刻み付けられようとしている…
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_8_0_1(ARG)
+
+PRINTFORML 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の膣内の感触を味わいながら、再び腰を動かし始めた…
+;寝取り返したケース
+IF !TALENT:ARG:NTR && EXP:ARG:NTR陥落経験
+	IF TALENT:ARG:浮気な蜜壷
+		PRINTFORML %CALLNAME:ARG%の蜜壷は%NTR_NAME(0)%のペニスを忘れることができないかのようだ…
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の陵辱にふたたびあの悦びを刻み付けられようとしている…
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_8_0_2(ARG)
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORML %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%の膣内から精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は胎内を精液で満たされ、子宮の奥深くまで征服されるかのような錯覚に酔いしれていた。
+;寝取り返したケース
+IF !TALENT:ARG:NTR && EXP:ARG:NTR陥落経験
+	IF TALENT:ARG:浮気な蜜壷
+		PRINTFORML %CALLNAME:ARG%の蜜壷は%NTR_NAME(0)%のペニスを咥え込む悦びにひくついている。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の陵辱にふたたびあの悦びを刻み付けられてしまった。
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;開始（主人同席）
+@NTR_MESSAGE_KW_8_0_0(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORMW %NTR_NAME(0)%のいきり勃ったモノが汚れをしらない%MSG_SLIT(ARG)%を貫いていった…。
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%のいきり勃ったモノが%CALLNAME:ARG%の性器に深々と打ち込まれた。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORMW %NTR_NAME(0)%のいきり勃ったモノが汚れをしらない%MSG_SLIT(ARG)%を貫いていった…。
+	ELSE
+		PRINTFORML %NTR_NAME(0)%のいきり勃ったモノが%CALLNAME:ARG%の性器に深々と打ち込まれた。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORMW %NTR_NAME(0)%のいきり勃ったモノが汚れをしらない%MSG_SLIT(ARG)%を貫いていった…。
+	ELSE
+		PRINTFORML %NTR_NAME(0)%のいきり勃ったモノが%CALLNAME:ARG%の性器に深々と打ち込まれた。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で仰向けに押し倒した%CALLNAME:ARG%の脚を開くと
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML いきり勃ったモノを汚れをしらない%MSG_SLIT(ARG)%にあてがい、一思いに貫いた…。
+	ELSE
+		PRINTFORML いきり勃ったモノを濡れそぼった性器に深々と打ち込んだ。
+	ENDIF
+
+ELSE
+
+	PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で仰向けに組み伏せた%CALLNAME:ARG%の脚を開くと
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML いきり勃ったモノを汚れをしらない%MSG_SLIT(ARG)%にあてがい、一思いに貫いた…。
+	ELSE
+		PRINTFORML いきり勃ったモノを濡れそぼった性器に深々と打ち込んだ。
+	ENDIF
+
+ENDIF
+RETURN 0
+
+;継続（主人同席）
+@NTR_MESSAGE_KW_8_0_1(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	PRINTFORML %NTR_NAME(0)%は突き入れたままのものをゆっくりと動かし始めた。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	PRINTFORML %NTR_NAME(0)%は突き入れたままのものをゆっくりと動かし始めた。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	PRINTFORML %NTR_NAME(0)%は突き入れたままのものをゆっくりと動かし始めた。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	PRINTFORML %NTR_NAME(0)%は更なる快楽で追い討ちをかけるかのように突き入れたままのものをゆっくりと動かし始めた。
+
+ELSE
+
+	PRINTFORMW %NTR_NAME(0)%は更なる恥辱で追い討ちをかけるかのように突き入れたままのものをゆっくりと動かし始めた。
+
+ENDIF
+RETURN 0
+
+;終了（主人同席）
+@NTR_MESSAGE_KW_8_0_2(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	PRINTFORM %CALLNAME:MASTER%に見せ付けながら%CALLNAME:ARG%は%NTR_NAME(0)%と%NTR_GET_SEX_LAGE()%
+	PRINTFORML で激しくまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	PRINTFORM %CALLNAME:MASTER%に見せ付けるように%CALLNAME:ARG%は%NTR_NAME(0)%と%NTR_GET_SEX_LAGE()%
+	PRINTFORML で激しくまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	PRINTFORM %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は%NTR_NAME(0)%と%NTR_GET_SEX_LAGE()%
+	PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	PRINTFORM %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は%NTR_NAME(0)%に%NTR_GET_SEX_LAGE()%
+	PRINTFORML で犯されていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった。
+
+ELSE
+
+	PRINTFORM %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は%NTR_NAME(0)%に%NTR_GET_SEX_LAGE()%
+	PRINTFORML で犯されていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった。
+
+ENDIF
+RETURN 0
+
+;==================================================
+;訪問者と性交（後背位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_8_1_0(ARG)
+IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は四つん這いにさせた%CALLNAME:ARG%の尻を高くあげさせ男を知らない%MSG_SLIT(ARG)%をペニスで貫いた…
+ELSE
+	PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は四つん這いにさせた%CALLNAME:ARG%の
+	IF TEQUIP:ARG:0 & 2
+		PRINTFORM %SHOW_BOTTOM(ARG,2)%をずらし、
+	ELSEIF TEQUIP:ARG:0 & 1
+		PRINTFORM %SHOW_BOTTOM(ARG,1)%を捲り上げ、
+	ENDIF
+	PRINTFORMW 後ろから%MSG_SLIT(ARG)%の最奥まで突き入れた…
+ENDIF
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_8_1_1(ARG)
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の膣内の感触を味わいながら、再び腰を動かし始めた…
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_8_1_2(ARG)
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORML %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%の膣内から精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は胎内を精液で満たされ、子宮の奥深くまで征服されるかのような錯覚に酔いしれていた。
+;寝取り返したケース
+IF !TALENT:ARG:NTR && EXP:ARG:NTR陥落経験
+	IF TALENT:ARG:浮気な蜜壷
+		PRINTFORML %CALLNAME:ARG%の蜜壷は%NTR_NAME(0)%のペニスを咥え込む悦びにひくついている。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の陵辱にふたたびあの悦びを刻み付けられてしまった。
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;開始（主人同席）
+@NTR_MESSAGE_KW_8_1_0(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	PRINTFORML %CALLNAME:ARG%は四つん這いになると見せ付けるかのように自ら尻を振って%NTR_NAME(0)%を誘った。
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML %CALLNAME:ARG%は%CALLNAME:MASTER%の目の前で%NTR_NAME(0)%に処女を捧げようとしていた。
+		PRINTFORMW %NTR_NAME(0)%のいきり勃ったモノが汚れをしらない%MSG_SLIT(ARG)%を貫いていった…。
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%のいきり勃ったモノが%CALLNAME:ARG%の性器に深々と打ち込まれた。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	PRINTFORML %CALLNAME:ARG%は四つん這いになると見せ付けるかのように自ら尻を振って%NTR_NAME(0)%を誘った。
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		IF TALENT:ARG:恋慕
+			PRINTFORML %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の目の前で%NTR_NAME(0)%に処女を捧げようとしていた。
+		ELSE
+			PRINTFORML %CALLNAME:ARG%は%CALLNAME:MASTER%の目の前で%NTR_NAME(0)%に処女を捧げようとしていた。
+		ENDIF
+		PRINTFORMW %NTR_NAME(0)%のいきり勃ったモノが汚れをしらない%MSG_SLIT(ARG)%を貫いていった…。
+	ELSE
+		PRINTFORML %NTR_NAME(0)%のいきり勃ったモノが%CALLNAME:ARG%の性器に深々と打ち込まれた。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	PRINTFORML %CALLNAME:ARG%は四つん這いになると自ら腰をくねらせて%NTR_NAME(0)%を誘った。
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		IF TALENT:ARG:恋慕
+			PRINTFORML %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の目の前で%NTR_NAME(0)%に処女を捧げようとしていた。
+		ELSE
+			PRINTFORML %CALLNAME:ARG%は%CALLNAME:MASTER%の目の前で%NTR_NAME(0)%に処女を捧げようとしていた。
+		ENDIF
+		PRINTFORMW %NTR_NAME(0)%のいきり勃ったモノが汚れをしらない%MSG_SLIT(ARG)%を貫いていった…。
+	ELSE
+		PRINTFORML %NTR_NAME(0)%のいきり勃ったモノが%CALLNAME:ARG%の性器に深々と打ち込まれた。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で四つん這いに組み伏せた%CALLNAME:ARG%の尻を掴むと
+		PRINTFORML いきり勃ったモノを汚れをしらない%MSG_SLIT(ARG)%にあてがい、一思いに貫いた…。
+	ELSE
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で四つん這いに組み伏せた%CALLNAME:ARG%の尻を掴むと
+		PRINTFORML いきり勃ったモノを濡れそぼった性器に深々と打ち込んだ。
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で四つん這いに組み伏せた%CALLNAME:ARG%の尻を掴むと
+		PRINTFORML いきり勃ったモノを汚れをしらない%MSG_SLIT(ARG)%にあてがい、一思いに貫いた…。
+	ELSE
+		PRINTFORML %NTR_NAME(0)%は%CALLNAME:MASTER%の目の前で四つん這いに組み伏せた%CALLNAME:ARG%の尻を掴むと
+		PRINTFORML いきり勃ったモノを濡れそぼった性器に深々と打ち込んだ。
+	ENDIF
+
+ENDIF
+RETURN 0
+
+;継続（主人同席）
+@NTR_MESSAGE_KW_8_1_1(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の一突きごとに背中をのけ反らせて喘いでいる。
+		PRINTFORML その表情は%CALLNAME:ARG%は処女喪失の痛みさえ悦びと感じているかのようだ。
+		PRINTFORML %NTR_NAME(0)%は突き入れたままのものをゆっくりと動かし始めた。
+		PRINTFORMW %CALLNAME:MASTER%に見せ付けながら%CALLNAME:ARG%はその動きに合わせて艶かしく腰を動かし始めていた。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の一突きごとに背中をのけ反らせて喘いでいる。
+		PRINTFORML %NTR_NAME(0)%は突き入れたままのものをゆっくりと動かし始めた。
+		PRINTFORMW %CALLNAME:MASTER%に見せ付けながら%CALLNAME:ARG%はその動きに合わせて艶かしく腰を動かしていた。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の一突きごとに背中をのけ反らせて喘いでいる。
+		PRINTFORML その表情は%CALLNAME:ARG%は処女喪失の痛みさえ悦びと感じているかのようだ。
+		PRINTFORML %NTR_NAME(0)%は突き入れたままのものをゆっくりと動かし始めた。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の一突きごとに背中をのけ反らせて喘いでいる。
+		PRINTFORML %NTR_NAME(0)%は突き入れたままのものをゆっくりと動かし始めた。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の一突きごとに背中をのけ反らせて喘いでいる。
+		PRINTFORML その表情は%CALLNAME:ARG%は処女喪失の痛みさえ悦びと感じているかのようだ。
+		PRINTFORML %NTR_NAME(0)%は突き入れたままのものをゆっくりと動かし始めた。
+
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の一突きごとに背中をのけ反らせて喘いでいる。
+		PRINTFORML %NTR_NAME(0)%は突き入れたままのものをゆっくりと動かし始めた。
+
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%に組み伏せられたまま処女喪失の痛みに耐えている。
+		PRINTFORML %NTR_NAME(0)%は更なる快楽で追い討ちをかけるかのように突き入れたままのものをゆっくりと動かし始めた。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%に組み伏せられたまま快楽と恥辱に耐えている。
+		PRINTFORML %NTR_NAME(0)%は更なる快楽で追い討ちをかけるかのように突き入れたままのものをゆっくりと動かし始めた。
+
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%に組み伏せられたまま処女喪失の痛みに耐えている。
+		PRINTFORMW %NTR_NAME(0)%は更なる恥辱で追い討ちをかけるかのように突き入れたままのものをゆっくりと動かし始めた。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%に組み伏せられたまま快楽と恥辱に耐えている。
+		PRINTFORMW %NTR_NAME(0)%は更なる恥辱で追い討ちをかけるかのように突き入れたままのものをゆっくりと動かし始めた。
+	ENDIF
+
+ENDIF
+RETURN 0
+
+;終了（主人同席）
+@NTR_MESSAGE_KW_8_1_2(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	PRINTFORM %CALLNAME:MASTER%に見せ付けながら%CALLNAME:ARG%は%NTR_NAME(0)%と獣のような姿勢
+	PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげてのけ反るのと同時にその動きが止まった。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	PRINTFORM %CALLNAME:MASTER%に見せ付けるように%CALLNAME:ARG%は%NTR_NAME(0)%と獣のような姿勢
+	PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげてのけ反るのと同時にその動きが止まった。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	PRINTFORM %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は%NTR_NAME(0)%と獣のような姿勢
+	PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげてのけ反るのと同時にその動きが止まった。
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	PRINTFORM %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は%NTR_NAME(0)%に獣のような姿勢
+	PRINTFORML で犯されていたが、%CALLNAME:ARG%が大きく嬌声をあげてのけ反るのと同時にその動きが止まった。
+
+ELSE
+
+	PRINTFORM %CALLNAME:MASTER%の目の前で%CALLNAME:ARG%は%NTR_NAME(0)%に獣のような姿勢
+	PRINTFORML で犯されていたが、%CALLNAME:ARG%が大きく嬌声をあげてのけ反るのと同時にその動きが止まった。
+
+ENDIF
+RETURN 0
+
+;==================================================
+;訪問者と性交（騎乗位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_8_2_0(ARG)
+
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は%NTR_NAME(0)%の上にまたがり、ゆっくりと腰を下ろし、
+		PRINTFORMW 男を知らない%MSG_SLIT(ARG)%でペニスを飲み込んでいった…
+	ELSE
+		PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は%NTR_NAME(0)%の上にまたがり、ゆっくりと腰を下ろしていった…
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は%NTR_NAME(0)%の上にまたがり、ゆっくりと腰を下ろし、
+		PRINTFORMW 男を知らない%MSG_SLIT(ARG)%でペニスを飲み込んでいった…
+	ELSE
+		PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は%NTR_NAME(0)%の上にまたがり、ゆっくりと腰を下ろしていった…
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は仰向けになると%CALLNAME:ARG%を自分の上に跨らせ、彼女の腰を掴んで
+		PRINTFORMW 男を知らない%MSG_SLIT(ARG)%にペニスを挿入した。
+	ELSE
+		PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は仰向けになると%CALLNAME:ARG%を自分の上に跨らせ、彼女の腰を掴んで
+		PRINTFORMW 濡れそぼった%MSG_SLIT(ARG)%にペニスを挿入した。
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+		PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は仰向けになると%CALLNAME:ARG%を自分の上に跨らせ、彼女の腰を掴んで
+		PRINTFORMW 男を知らない%MSG_SLIT(ARG)%にペニスを挿入した。
+	ELSE
+		PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は仰向けになると%CALLNAME:ARG%を自分の上に跨らせ、彼女の腰を掴んで
+		PRINTFORMW 濡れそぼった%MSG_SLIT(ARG)%にペニスを挿入した。
+	ENDIF
+
+ENDIF
+
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_8_2_1(ARG)
+
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は挿入されたまま、再び腰を動かし始めた…
+	PRINTFORM %CALLNAME:ARG%は
+	SIF TALENT:ARG:体型 < 0
+		PRINT 小さな身体で懸命に
+	SIF TALENT:ARG:バストサイズ == 1
+		PRINT 大きく胸を揺らしながら
+	SIF TALENT:ARG:バストサイズ == 2
+		PRINT 跳ねる胸に身体ごと揺らされながら
+	PRINTW 自ら腰を動かしている…
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は挿入されたまま、再び腰を動かし始めた…
+	PRINTFORM %CALLNAME:ARG%は
+	SIF TALENT:ARG:体型 < 0
+		PRINT 小さな身体で懸命に
+	SIF TALENT:ARG:バストサイズ == 1
+		PRINT 大きく胸を揺らしながら
+	SIF TALENT:ARG:バストサイズ == 2
+		PRINT 跳ねる胸に身体ごと揺らされながら
+	PRINTW 自ら腰を動かしている…
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は挿入されたまま、%NTR_NAME(0)%に促されるまま腰を動かし始めた…
+
+ELSE
+
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は挿入されたまま、腰を動かすことを強いられた…
+
+ENDIF
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_8_2_2(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORML %CALLNAME:ARG%がびく、びく、と震えるたびに%NTR_NAME(0)%のペニスから熱い白濁が放たれその胎内を満たしていった。
+
+RETURN 0
+
+;==================================================
+;訪問者と性交（対面座位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_8_3_0(ARG)
+
+IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の身体を抱き上げ、ゆっくりと降ろしながら口付けをしつつ男を知らない%MSG_SLIT(ARG)%をペニスで貫いた…
+ELSE
+	PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の身体を抱き上げ、ゆっくりと降ろしながら
+	SIF TEQUIP:ARG:0 & 2
+		PRINTFORM ずらした%SHOW_BOTTOM(ARG,2)%の隙間の
+	PRINTFORMW %MSG_SLIT(ARG)%に挿入し、口付けをしつつ腰を揺り動かしていた…
+ENDIF
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%の首に手を回して抱きついていた…
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_8_3_1(ARG)
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は膣内からペニスを抜き去ることなく%CALLNAME:ARG%の身体をぎゅっと抱き寄せ、舌を絡めながら再び腰を揺すり始めた…
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%の首に手を回して抱きついていた…
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_8_3_2(ARG)
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORML %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%の膣内から精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は胎内を精液で満たされ、子宮の奥深くまで征服されるかのような錯覚に酔いしれていた。
+;寝取り返したケース
+IF !TALENT:ARG:NTR && EXP:ARG:NTR陥落経験
+	IF TALENT:ARG:浮気な蜜壷
+		PRINTFORML %CALLNAME:ARG%の蜜壷は%NTR_NAME(0)%のペニスを咥え込む悦びにひくついている。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の陵辱にふたたびあの悦びを刻み付けられてしまった。
+	ENDIF
+ENDIF
+RETURN 0
+
+;==================================================
+;訪問者と性交（背面座位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_8_4_0(ARG)
+
+IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の身体を抱き上げ、男を知らない%MSG_SLIT(ARG)%を待ち構えていたモノでゆっくり貫いた…
+ELSE
+	PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の身体を抱き上げ、%MSG_SLIT(ARG)%
+	IF TEQUIP:ARG:0 & 2
+		PRINTFORMW に%SHOW_BOTTOM(ARG,2)%の隙間からゆっくり挿入した…
+	ELSE
+		PRINTFORMW を待ち構えていたモノでゆっくり貫いた…
+	ENDIF
+ENDIF
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW %CALLNAME:ARG%は背を仰け反らせて%NTR_NAME(0)%にしなだれかかった…
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_8_4_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は膣内からペニスを抜き去ることなく%CALLNAME:ARG%の身体を背中から抱き寄せ、身体を揺さぶり始めた…
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORMW %CALLNAME:ARG%は背を仰け反らせて%NTR_NAME(0)%にしなだれかかった…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_8_4_2(ARG)
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORML %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%の膣内から精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は胎内を精液で満たされ、子宮の奥深くまで征服されるかのような錯覚に酔いしれていた。
+;寝取り返したケース
+IF !TALENT:ARG:NTR && EXP:ARG:NTR陥落経験
+	IF TALENT:ARG:浮気な蜜壷
+		PRINTFORML %CALLNAME:ARG%の蜜壷は%NTR_NAME(0)%のペニスを咥え込む悦びにひくついている。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の陵辱にふたたびあの悦びを刻み付けられてしまった。
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;==================================================
+;訪問者と性交（対面立位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_8_5_0(ARG)
+
+IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+	PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の片足を持ち上げて男を知らない%MSG_SLIT(ARG)%に亀頭をあてがい一気に貫いた…
+ELSE
+	PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の片足を持ち上げて
+	SIF TEQUIP:ARG:0 & 2
+		PRINTFORM %SHOW_BOTTOM(ARG,2)%をずらし、
+	PRINTFORMW %MSG_SLIT(ARG)%にペニスをあてがい貫いた…
+ENDIF
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+	PRINTFORML %CALLNAME:ARG%は痛みに耐えながら%NTR_NAME(0)%にきゅっと抱きついた…
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_8_5_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の膣内の感触を味わいながら、再び腰を動かし始めた…
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度 && TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+	PRINTFORML %CALLNAME:ARG%は痛みに耐えながら%NTR_NAME(0)%にきゅっと抱きついた…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_8_5_2(ARG)
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORML %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%の膣内から精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は胎内を精液で満たされ、子宮の奥深くまで征服されるかのような錯覚に酔いしれていた。
+;寝取り返したケース
+IF !TALENT:ARG:NTR && EXP:ARG:NTR陥落経験
+	IF TALENT:ARG:浮気な蜜壷
+		PRINTFORML %CALLNAME:ARG%の蜜壷は%NTR_NAME(0)%のペニスを咥え込む悦びにひくついている。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の陵辱にふたたびあの悦びを刻み付けられてしまった。
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;==================================================
+;訪問者と性交（背面立位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_8_6_0(ARG)
+
+IF TALENT:ARG:処女 || CFLAG:ARG:処女喪失中
+	PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%MSG_WALL_OR_TREE()%
+	PRINTFORMW に手を付かせた%CALLNAME:ARG%におしりを突き出させ男を知らない%MSG_SLIT(ARG)%をペニスで貫いた…
+ELSE
+	PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%MSG_WALL_OR_TREE()%
+	PRINTFORM に手を付かせた%CALLNAME:ARG%の
+	IF TEQUIP:ARG:0 & 2
+		PRINTFORM %SHOW_BOTTOM(ARG,2)%をおろし、
+	ELSEIF TEQUIP:ARG:0 & 1
+		PRINTFORM %SHOW_BOTTOM(ARG,1)%を捲り上げ、
+	ENDIF
+	PRINTFORMW 後ろから%MSG_SLIT(ARG)%の最奥まで突き入れた…
+ENDIF
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_8_6_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の膣内の感触を味わいながら、再び腰を動かし始めた…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_8_6_2(ARG)
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORML でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORML %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%の膣内から精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は胎内を精液で満たされ、子宮の奥深くまで征服されるかのような錯覚に酔いしれていた。
+;寝取り返したケース
+IF !TALENT:ARG:NTR && EXP:ARG:NTR陥落経験
+	IF TALENT:ARG:浮気な蜜壷
+		PRINTFORML %CALLNAME:ARG%の蜜壷は%NTR_NAME(0)%のペニスを咥え込む悦びにひくついている。
+	ELSE
+		PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の陵辱にふたたびあの悦びを刻み付けられてしまった。
+	ENDIF
+ENDIF
+
+RETURN 0
+
+
+;==================================================
+;訪問者とＡ性交（正常位／汎用）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_9_0_0(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は仰向けに寝かせた%CALLNAME:ARG%の
+SIF TEQUIP:ARG:0 & 2
+	PRINTFORM %SHOW_BOTTOM(ARG,2)%の隙間から
+
+SIF ABL:ARG:Ａ感覚 < 2
+	PRINTFORM 未開発のきつい
+SIF ABL:ARG:Ａ感覚 >= 4
+	PRINTFORM 柔らかく開発された
+
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTL アヌスを貫いた
+	PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%に足を絡め腰を押し付けてきた…
+ELSE
+	PRINTW アヌスを貫いた…
+ENDIF
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_9_0_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の菊穴の感触を味わいながら、再び腰を動かし始めた…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_9_0_2(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORMW でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORMW %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%のアナルから精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は腸内に注ぎ込まれた烙印の熱さにうっとりとしていた。
+LOCAL = FLAG:訪問者との行為 - 14
+
+RETURN 0
+
+;==================================================
+;訪問者とＡ性交（後背位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_9_1_0(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は四つん這いにさせた%CALLNAME:ARG%の
+IF TEQUIP:ARG:0 & 2
+	PRINTFORM %SHOW_BOTTOM(ARG,2)%をずらし、
+ELSEIF TEQUIP:0 & 1
+	PRINTFORM %SHOW_BOTTOM(ARG,1)%を捲り上げ、
+ENDIF
+PRINTFORMW 後ろからアヌスの最奥まで突き入れた…
+TRYCALLFORM NTR_KOJO_K{ARG}_9_1_0
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_9_1_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%のアヌスの感触を味わいながら、再び腰を動かし始めた…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_9_1_2(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORMW でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORMW %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%のアナルから精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は腸内に注ぎ込まれた烙印の熱さにうっとりとしていた。
+LOCAL = FLAG:訪問者との行為 - 14
+
+RETURN 0
+
+;==================================================
+;訪問者とＡ性交（騎乗位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_9_2_0(ARG)
+
+PRINTFORML 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%CALLNAME:ARG%は%NTR_NAME(0)%の上にまたがると、アヌスでゆっくりと%NTR_NAME(0)%のモノを飲み込んでいった…
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORM %CALLNAME:ARG%は
+	SIF TALENT:ARG:体型 < 0
+		PRINT 小さな身体で懸命に
+	SIF TALENT:ARG:バストサイズ == 1
+		PRINT 大きく胸を揺らしながら
+	SIF TALENT:ARG:バストサイズ == 2
+		PRINT 跳ねる胸に身体ごと揺らされながら
+	PRINTW 自ら腰を動かしている…
+ENDIF
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_9_2_1(ARG)
+
+PRINTFORML 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】%CALLNAME:ARG%は挿入されたまま、再び腰を動かし始めた…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_9_2_2(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORMW でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORMW %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%のアナルから精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は腸内に注ぎ込まれた烙印の熱さにうっとりとしていた。
+LOCAL = FLAG:訪問者との行為 - 14
+
+RETURN 0
+
+
+;==================================================
+;訪問者とＡ性交（対面座位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_9_3_0(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の身体を抱き上げ
+SIF TEQUIP:ARG:0 & 2
+	PRINTFORM %SHOW_BOTTOM(ARG,2)%を強引にずらし
+PRINTFORMW ゆっくりと降ろしながらアヌスへと挿入すると、口付けをしつつ腰を揺り動かしていた…
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の首に手を回して抱きついていた…
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_9_3_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%とキスをし、舌を絡めながら再び腰を揺すり始めた…
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%の首に手を回して抱きついていた…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_9_3_2(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORMW でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORMW %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%のアナルから精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は腸内に注ぎ込まれた烙印の熱さにうっとりとしていた。
+LOCAL = FLAG:訪問者との行為 - 14
+
+RETURN 0
+
+;==================================================
+;訪問者とＡ性交（背面座位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_9_4_0(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の身体を抱き上げ、
+SIF TEQUIP:ARG:0 & 2
+	PRINTFORM ずらした%SHOW_BOTTOM(ARG,2)%の隙間から
+PRINTFORMW アヌスを待ち構えていたモノでゆっくり貫いた…
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は背を仰け反らせて%NTR_NAME(0)%にしなだれかかった…
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_9_4_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%を背後から抱きしめ、再び%CALLNAME:ARG%の身体を揺らし始めた…
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は背を仰け反らせて%NTR_NAME(0)%にしなだれかかった…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_9_4_2(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORMW でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORMW %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%のアナルから精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は腸内に注ぎ込まれた烙印の熱さにうっとりとしていた。
+LOCAL = FLAG:訪問者との行為 - 14
+
+RETURN 0
+
+;==================================================
+;訪問者とＡ性交（対面立位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_9_5_0(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の
+SIF TEQUIP:ARG:0 & 2
+	PRINTFORM %SHOW_BOTTOM(ARG,2)%の隙間から
+IF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTL アヌスを貫いた
+	PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%に足を絡め腰を押し付けてきた…
+ELSE
+	PRINTW アヌスを貫いた…
+ENDIF
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は背を仰け反らせて%NTR_NAME(0)%にしなだれかかった…
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_9_5_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%の菊穴の感触を味わいながら、再び腰を動かし始めた…
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は背を仰け反らせて%NTR_NAME(0)%にしなだれかかった…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_9_5_2(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORMW でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORMW %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%のアナルから精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は腸内に注ぎ込まれた烙印の熱さにうっとりとしていた。
+LOCAL = FLAG:訪問者との行為 - 14
+
+RETURN 0
+
+
+;==================================================
+;訪問者とＡ性交（背面立位）
+;==================================================
+
+;開始
+@NTR_MESSAGE_K_9_6_0(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%MSG_WALL_OR_TREE()%
+PRINTFORM に手を付かせた%CALLNAME:ARG%の
+IF TEQUIP:ARG:0 & 2
+	PRINTFORM %SHOW_BOTTOM(ARG,2)%をずらし、
+ELSEIF TEQUIP:ARG:0 & 1
+	PRINTFORM %SHOW_BOTTOM(ARG,1)%を捲り上げ、
+ENDIF
+PRINTFORMW 後ろからアヌスの最奥まで突き入れた…
+
+RETURN 0
+
+;継続
+@NTR_MESSAGE_K_9_6_1(ARG)
+
+PRINTFORMW 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】で%NTR_NAME(0)%は%CALLNAME:ARG%のアヌスの感触を味わいながら、再び腰を動かし始めた…
+
+RETURN 0
+
+;終了
+@NTR_MESSAGE_K_9_6_2(ARG)
+
+PRINTFORM 【%NTR_GETPLACENAME(FLAG:訪問者の現在位置)%】にて%NTR_NAME(0)%と%CALLNAME:ARG%が%NTR_GET_SEX_LAGE()%
+PRINTFORMW でまぐわっていたが、%CALLNAME:ARG%が大きく嬌声をあげるのと同時にその動きが止まった
+PRINTFORMW %NTR_NAME(0)%がペニスを抜くと%CALLNAME:ARG%のアナルから精液が零れ落ちた
+SIF CFLAG:ARG:屈服度 > CFLAG:ARG:好感度
+	PRINTFORML %CALLNAME:ARG%は腸内に注ぎ込まれた烙印の熱さにうっとりとしていた。
+LOCAL = FLAG:訪問者との行為 - 14
+
+RETURN 0
+
+
+
+;==================================================
+;お持ち帰り系
+;==================================================
+;==================================================
+;訪問者と会話（お持ち帰り）
+;==================================================
+@NTR_MESSAGE_10_1(ARG:0,ARG:1)
+IF TALENT:ARG:公衆便所
+	PRINTFORMW %CALLNAME:ARG%は客と会話している(お持ち帰り)
+ELSE
+	PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%と会話している(お持ち帰り)
+ENDIF
+RETURN 0
+
+;==================================================
+;訪問者とキス（お持ち帰り）
+;==================================================
+@NTR_MESSAGE_10_2(ARG:0,ARG:1)
+IF TALENT:ARG:公衆便所
+	PRINTFORMW %CALLNAME:ARG%は客とキスしている(お持ち帰り)
+ELSE
+	PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%とキスしている(お持ち帰り)
+ENDIF
+RETURN 0
+
+;==================================================
+;訪問者と６９（お持ち帰り）
+;==================================================
+@NTR_MESSAGE_10_3(ARG:0,ARG:1)
+IF TALENT:ARG:公衆便所
+	PRINTFORMW %CALLNAME:ARG%は客と互いの性器を舐めあっている(お持ち帰り)
+ELSE
+	PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%と互いの性器を舐めあっている(お持ち帰り)
+ENDIF
+RETURN 0
+
+;==================================================
+;訪問者と性交（お持ち帰り）
+;==================================================
+;@param ARG:0 キャラ番号
+;@param ARG:1 輪姦内容
+@NTR_MESSAGE_10_4(ARG:0,ARG:1)
+	SELECTCASE ARG:1
+		CASE 0
+			;客あり、輪姦なし
+			PRINTFORMW %CALLNAME:(ARG:0)%は客とセックスしている(お持ち帰り)
+		CASE 1
+			;客あり、２人、ＭＶ
+			PRINTFORMW %CALLNAME:(ARG:0)%は二人の客のペニスを口と膣に咥え込んでいる(お持ち帰り)
+		CASE 2
+			;客あり、２人、ＭＡ
+			PRINTFORMW %CALLNAME:(ARG:0)%は二人の客のペニスを口とアナルに咥え込んでいる(お持ち帰り)
+		CASE 3
+			;客あり、２人、ＶＡ
+			PRINTFORMW %CALLNAME:(ARG:0)%は二人の客のペニスを膣とアナルに咥え込んでいる(お持ち帰り)
+		CASE 10
+			;客あり、２人、ＶＶ
+			PRINTFORMW %CALLNAME:(ARG:0)%は客のペニスを２本同時に膣内へ挿入している(お持ち帰り)
+		CASE 11
+			;客あり、２人、ＡＡ
+			PRINTFORMW %CALLNAME:(ARG:0)%は客のペニスを２本同時に腸内へ挿入している(お持ち帰り)
+		CASE 20
+			;客あり、２人、ＭＡＶ
+			PRINTFORMW %CALLNAME:(ARG:0)%は三人の客のペニスを膣、口、アナルに咥え込んでいる(お持ち帰り)
+		CASEELSE
+			;客なし、訪問者と
+			PRINTFORMW %CALLNAME:(ARG:0)%は%NTR_NAME(0)%とセックスしている(お持ち帰り)
+	ENDSELECT
+RETURN 0
+
+;==================================================
+;訪問者の射精（お持ち帰り）
+;==================================================
+@NTR_MESSAGE_10_5(ARG:0,ARG:1)
+	SELECTCASE ARG:1
+		CASE 0
+			;客あり、輪姦なし
+			PRINTFORMW %CALLNAME:(ARG:0)%は客の精液を受けている(お持ち帰り)
+		CASE 1
+			;客あり、２人、ＭＶ
+			PRINTFORMW %CALLNAME:(ARG:0)%は二人の客の精液を口と膣に注がれている(お持ち帰り)
+		CASE 2
+			;客あり、２人、ＭＡ
+			PRINTFORMW %CALLNAME:(ARG:0)%は二人の客の精液を口とアナルに注がれている(お持ち帰り)
+		CASE 3
+			;客あり、２人、ＶＡ
+			PRINTFORMW %CALLNAME:(ARG:0)%は二人の客の精液を膣とアナルに注がれている(お持ち帰り)
+		CASE 10
+			;客あり、２人、ＶＶ
+			PRINTFORMW %CALLNAME:(ARG:0)%は二人の客の精液を膣に注がれている(お持ち帰り)
+		CASE 11
+			;客あり、２人、ＡＡ
+			PRINTFORMW %CALLNAME:(ARG:0)%は二人の客の精液をアナルに注がれている(お持ち帰り)
+		CASE 20
+			;客あり、２人、ＭＡＶ
+			PRINTFORMW %CALLNAME:(ARG:0)%は三人の客の精液を膣、口、アナルに注がれている(お持ち帰り)
+		CASEELSE
+			;客なし、訪問者と
+			PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%の精液を受けている(お持ち帰り)
+	ENDSELECT
+RETURN 0
+
+
+;==================================================
+;朝の奉仕（お持ち帰り）
+;==================================================
+@NTR_MESSAGE_14(ARG)
+PRINTFORML 目覚めた%NTR_NAME(0)%はそそり立つものを%CALLNAME:ARG%につきつけ奉仕を求めた。
+RETURN 0
+
+;フェラチオ奉仕
+@NTR_MESSAGE_14_0(ARG)
+PRINTFORML %CALLNAME:ARG%は口で%NTR_NAME(0)%に奉仕した。
+RETURN 0
+
+;A性交奉仕
+@NTR_MESSAGE_14_1(ARG)
+PRINTFORML %CALLNAME:ARG%は%NTR_NAME(0)%とアヌスで交わっている。
+RETURN 0
+
+;性交奉仕
+@NTR_MESSAGE_14_2(ARG)
+PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%とセックスしている。
+RETURN 0
+
+;==================================================
+;会話失敗（覗きバレ）
+;==================================================
+@NTR_MESSAGE_300_NG_PEEP(ARG)
+
+;公衆便所
+IF TALENT:ARG:公衆便所
+
+	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていたことを指摘した。
+	PRINTFORML %CALLNAME:TARGET%はわずかに頬を染め薄笑いを浮かべながら、自分の身体は商品なのだから見ていたならお金を取るかも、と冗談を口にした。
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORML もし我慢できなかったら、料金次第で抜いてあげるとも呟いた。		
+	ELSE
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+
+	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていたことを指摘した。
+	PRINTFORML %CALLNAME:TARGET%はわずかに頬を染め薄笑いを浮かべながら、見ていて興奮したかと問いかけた。
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORML もし我慢できなかったら、次からはその場で自分で慰めなさいと嘲笑いながら囁いた。		
+	ELSE
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていたことを指摘した。
+	IF TALENT:ARG:恋慕
+		PRINTFORML %CALLNAME:TARGET%はわずかに頬を染め薄笑いを浮かべながら、恋人が犯される様を見て興奮するのかと問いかけた。
+	ELSE
+		PRINTFORML %CALLNAME:TARGET%はわずかに頬を染め薄笑いを浮かべながら、見ていて興奮したかと問いかけた。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	;2回以上
+	IF CFLAG:ARG:覗き発覚回数 > 1
+		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていながら助けなかったことを責めた。
+		IF TALENT:ARG:恋慕
+			PRINTFORML 助けるどころか覗き続けていたことを指摘し、自分は助ける価値もないのか、恋人が犯される様を見て興奮するのかと問い詰めてきた。
+		ELSE
+			PRINTFORML 助けるどころか覗き続けていたことを指摘し、自分は助ける価値もないのか、人が犯される様を見て興奮するのかと問い詰めてきた。
+		ENDIF
+	;1回
+	ELSE
+		IF TALENT:ARG:恋慕
+			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていながら助けなかったことを責め、それでも恋人かと問い詰めてきた。
+		ELSE
+			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていながら助けなかったことを問い詰めてきた。
+		ENDIF
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	;2回以上
+	IF CFLAG:ARG:覗き発覚回数 > 1
+		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていながら助けなかったことを責めた。
+		IF TALENT:恋慕
+			PRINTFORML 助けるどころか覗き続けていたことを指摘し、自分は助ける価値もないのか、それでも恋人なのかと罵った。
+		ELSE
+			PRINTFORML 助けるどころか覗き続けていたことを指摘し、自分は助ける価値もないのかと罵った。
+		ENDIF
+	;1回
+	ELSE
+		IF TALENT:恋慕
+			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていながら助けなかったことを責め、それでも恋人なのかと罵った。
+		ELSE
+			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていながら助けなかったことを責めた。
+		ENDIF
+	ENDIF
+
+ELSE
+
+	;2回以上
+	IF CFLAG:ARG:覗き発覚回数 > 1
+		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていながら助けなかったことを責めた。
+		IF TALENT:恋慕
+			PRINTFORML 助けるどころか覗き続けていたことを指摘し、自分は助ける価値もないのか、それでも恋人なのかと罵った。
+		ELSE
+			PRINTFORML 助けるどころか覗き続けていたことを指摘し、自分は助ける価値もないのかと罵った。
+		ENDIF
+	;1回
+	ELSE
+		IF TALENT:恋慕
+			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていながら助けなかったことを、それでも恋人なのかと責めた。
+		ELSE
+			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が%NTR_NAME(0)%との行為を覗いていながら助けなかったことを責めた。
+		ENDIF
+	ENDIF
+
+ENDIF
+PRINTW あたりに気まずい空気が流れた…
+
+RETURN 0
+
+
+;==================================================
+;キス見せつけ（覗きバレ）
+;==================================================
+;ARG…訪問者の相手
+@NTR_MESSAGE_KISS_SHOW(ARG)
+
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORMW %CALLNAME:ARG%はワザとらしく大きく音を立ててに%NTR_NAME(0)%と互いの口で唾液を混ぜ合わせている。
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%と舌を絡めあっている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%と舌を絡めあっている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%と舌を絡めあっている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%と舌を絡めあっている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%と舌を絡めあっている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線から逃れるかのように目を閉じつつ%NTR_NAME(0)%と唇を重ねている。
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線の先で目を閉じ%NTR_NAME(0)%と唇を重ねている。
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "うふふする程度")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に縋るような視線を向けつつ%NTR_NAME(0)%と唇を重ねている。
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線の先で%NTR_NAME(0)%と唇を重ねている。
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に縋るかのような視線を向けている
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%に見せ付けようとしているようだ
+	ENDIF
+
+ENDIF
+
+RETURN 0
+
+;==================================================
+;愛撫見せつけ（覗きバレ）
+;==================================================
+;ARG…訪問者の相手
+@NTR_MESSAGE_PET_SHOW(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見られて興奮し%NTR_NAME(0)%の手で嬲られる度に身をくねらせている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線を意に介さず%NTR_NAME(0)%の思うままに身体をゆだねている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線を浴びながらも%NTR_NAME(0)%の思うままに身体をゆだねている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線を意に介さず%NTR_NAME(0)%の思うままに身体をゆだねている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線を気にしつつも%NTR_NAME(0)%の思うままに身体をゆだねている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線を気にしつつも%NTR_NAME(0)%の思うままに身体をゆだねている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線に気づいてもなお逃げられないようだ
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線に気づいてもなお逃げられないようだ
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に縋るかのような視線を向けている
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%に見せ付けようとしているようだ
+	ENDIF
+
+ENDIF
+
+RETURN 0
+
+;==================================================
+;胸愛撫見せつけ（覗きバレ）
+;==================================================
+;ARG…訪問者の相手
+@NTR_MESSAGE_BUST_PET_SHOW(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に嘲りの視線を送りながら%NTR_NAME(0)%の乳房の愛撫に喘いでいる
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線を意に介さず乳房を%NTR_NAME(0)%のほしいままにさせている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線を浴びながらも乳房を%NTR_NAME(0)%のほしいままにさせている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線を意に介さず乳房を%NTR_NAME(0)%のほしいままにさせている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線を気にしつつも乳房を%NTR_NAME(0)%のほしいままにさせている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線を気にしつつも乳房を%NTR_NAME(0)%のほしいままにさせている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線に気づいてもなお逃げられないようだ
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線に気づいてもなお逃げられないようだ
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に縋るかのような視線を向けている
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%に見せ付けようとしているようだ
+	ENDIF
+
+ENDIF
+
+RETURN 0
+
+;==================================================
+;フェラ見せつけ（覗きバレ）
+;==================================================
+;ARG…訪問者の相手
+@NTR_MESSAGE_FELLATIO_SHOW(ARG)
+
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に聴こえるほど大きな音を立てて%NTR_NAME(0)%のペニスを深く咥え込んで吸い上げている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線を意に介さず%NTR_NAME(0)%のペニスをしゃぶっている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW 恋人である%CALLNAME:ARG%は%CALLNAME:MASTER%の視線を意に介さず%NTR_NAME(0)%のペニスをしゃぶっている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線を意に介さず%NTR_NAME(0)%のペニスをしゃぶっている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%に時折視線をよこしつつもなお奉仕を続けている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に時折視線をよこしつつもなお奉仕を続けている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線に気づいてもなお奉仕を続けている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線に気づいてもなお奉仕を続けている
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に助けを求めるかのような視線を向けている
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%に見せ付けようとしているようだ
+	ENDIF
+
+ENDIF
+
+RETURN 0
+
+;==================================================
+;シックスナイン見せつけ（覗きバレ）
+;==================================================
+;ARG…訪問者の相手
+@NTR_MESSAGE_69_SHOW(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORMW %CALLNAME:ARG%は%NTR_NAME(0)%の顔に秘所をすりつけながら、激しく顔を動かしてペニスを口内でしごいている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%のペニスをしゃぶっている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人であるはずの%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%のペニスをしゃぶっている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%のペニスをしゃぶっている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%にちらちらと視線をよこしつつなお奉仕を続けている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%にちらちらと視線をよこしつつなお奉仕を続けている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線に気づいてもなお奉仕を続けている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線に気づいてもなお奉仕を続けている
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に助けを求めるかのような視線を向けている
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%に見せ付けようとしているようだ
+	ENDIF
+
+ENDIF
+
+RETURN 0
+
+;==================================================
+;素股見せつけ（覗きバレ）
+;==================================================
+;ARG…訪問者の相手
+@NTR_MESSAGE_THUG_SHOW(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%更に強く%NTR_NAME(0)%のペニスに秘所を押し付けて、腰を激しく動かして快感を貪っている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%のペニスに腰を擦りつけている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人であるはずの%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%のペニスに腰を擦りつけている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見せ付けるかのように%NTR_NAME(0)%のペニスに腰を擦りつけている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%に見られていると知りながら%NTR_NAME(0)%のペニスに腰を擦りつけている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見られていると知りながら%NTR_NAME(0)%のペニスに腰を擦りつけている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%に見られながら腰を擦り付けることを強いられている
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%に見られながら腰を擦り付けることを強いられている
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%に助けを求めるかのような視線を向けている
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%に見せ付けようとしているようだ
+	ENDIF
+
+ENDIF
+
+RETURN 0
+
+;==================================================
+;セックス見せつけ（覗きバレ）
+;==================================================
+;ARG…訪問者の相手
+@NTR_MESSAGE_SEX_SHOW(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORMW %CALLNAME:ARG%は快楽で蕩けた顔で%CALLNAME:MASTER%にも肉の打ちつける音が聴こえるほど腰を振って%NTR_NAME(0)%のペニスを秘所に咥え込んでいる
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%にわざと見せ付けるかのように腰を振っている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%にわざと見せ付けるかのように腰を振っている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%にわざと見せ付けるかのように腰を振っている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:恋慕 
+		IF TALENT:ARG:サド || ABL:ARG:サドっ気 > 4
+			PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線に気づいた上で敢えて抵抗せず%NTR_NAME(0)%を受け入れている様を見せ付けている
+		ELSE
+			PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%の視線に気づいてもなお抵抗せず%NTR_NAME(0)%を受け入れている
+		ENDIF
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線に気づいてもなお抵抗せず%NTR_NAME(0)%を受け入れている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%に助けを求めるかのような視線を向けているが、次第に快楽に屈し弱々しいものになってゆく
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に助けを求めるかのような視線を向けているが、次第に快楽に屈し弱々しいものになってゆく
+	ENDIF
+
+ELSE
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に助けを求めるかのような視線を向けている
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%に見せ付けようとしているようだ
+	ENDIF
+
+ENDIF
+
+RETURN 0
+
+;==================================================
+;アナルセックス見せつけ（覗きバレ）
+;==================================================
+;ARG…訪問者の相手
+@NTR_MESSAGE_A_SEX_SHOW(ARG)
+IF NTR_CHK_FAVORABLY(ARG, "寝取られ")
+	IF CFLAG:ARG:覗き発覚回数 > 5
+		PRINTFORMW %CALLNAME:ARG%は周りに聴こえるほどの大きな喘ぎ声を上げながら%NTR_NAME(0)%のペニスを菊座で強く締め付けている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見せ付けるかのように腰を振りアナルの快感をむさぼっている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られ寸前")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人であるはずの%CALLNAME:MASTER%に見せ付けるかのように腰を振りアナルの快感をむさぼっている
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に見せ付けるかのように腰を振りアナルの快感をむさぼっている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "寝取られそう")
+
+	IF TALENT:ARG:恋慕 
+		IF TALENT:ARG:サド || ABL:ARG:サドっ気 > 4
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線に気づいた上で敢えて抵抗せずアナルで%NTR_NAME(0)%を受け入れている様を見せ付けている
+		ELSE
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線に気づいてもなお抵抗せずアナルで%NTR_NAME(0)%を受け入れている様を見せ付けている
+		ENDIF
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%の視線に気づいてもなお抵抗せずアナルで%NTR_NAME(0)%を受け入れている
+	ENDIF
+
+ELSEIF NTR_CHK_FAVORABLY(ARG, "主人より高い")
+
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は恋人である%CALLNAME:MASTER%に助けを求めるかのような視線を向けているが、アナルへの一突きごとに快楽に屈し弱々しいものになってゆく
+	ELSE
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に助けを求めるかのような視線を向けているが、アナルへの一突きごとに快楽に屈し弱々しいものになってゆく
+	ENDIF
+
+ELSE
+	IF TALENT:ARG:恋慕 
+		PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に助けを求めるかのような視線を向けている
+	ELSE
+		PRINTFORMW %NTR_NAME(0)%は%CALLNAME:MASTER%に見せ付けようとしているようだ
+	ENDIF
+
+ENDIF
+RETURN 0
+
+;==================================================
+;イけなかったのにイったふり
+;==================================================
+;@param ARG:0 演技中のキャラクター
+@NTR_MESSAGE_FAKE_ORGASM(ARG:0)
+	
+	LOCAL:0 = (PALAM:ARG:快Ｃ==PALAMLV:4-1)+(PALAM:ARG:快Ｖ==PALAMLV:4-1)+(PALAM:ARG:快Ａ==PALAMLV:4-1)+(PALAM:ARG:快Ｂ==PALAMLV:4-1)
+	IF !LOCAL:0
+		RETURN 0
+	ENDIF
+	PRINTFORML %CALLNAME:(ARG:0)+"は喘ぎ声をあげて身体を震わせ、絶頂に達した"%
+	IF LOCAL:0 > 3
+		PRINTFORML %CALLNAME:(ARG:0)+"荒い息をついて脱力している……"%
+	ENDIF
+	TRYCALLLIST
+		FUNC NTR_KOJO_K{ARG:0}_FAKE_ORGASM(LOCAL:0)
+		FUNC NTR_KOJO_KU_FAKE_ORGASM(LOCAL:0, ARG:0)
+	ENDFUNC
+	PRINTFORMW
+	
+RETURN 0
+

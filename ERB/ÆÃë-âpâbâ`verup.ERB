@@ -1,0 +1,93 @@
+
+@追加パッチVerUP
+IF FLAG:生理～出産まわりパッチVerUP用フラグ == 0
+	SETCOLOR 200, 200, 0
+	PRINTL -多生児出産と(ryパッチV1.0用フラグ適用完了-
+	RESETCOLOR
+	;子供の親をチェック
+	FOR LOCAL, 0, CHARANUM
+		IF NO:LOCAL == 148 || NO:LOCAL == 149
+			;親の子供の数を加算
+			;父親が訪問者なら訪問者用の人数フラグ処理
+			IF (CFLAG:LOCAL:73) >= CHARANUM
+				FLAG:訪問者の子供の数 ++
+			ELSE
+				CFLAG:(CFLAG:LOCAL:73):85 ++
+			ENDIF
+			CFLAG:(CFLAG:LOCAL:74):85 ++
+			
+			;子供が両親にとっての何人目の子供かを設定
+			IF (CFLAG:LOCAL:73) >= CHARANUM
+				CFLAG:LOCAL:父親の子番号 = FLAG:訪問者の子供の数
+			ELSE
+				CFLAG:LOCAL:父親の子番号 = CFLAG:(CFLAG:LOCAL:73):85
+			ENDIF
+			CFLAG:LOCAL:母親の子番号 = CFLAG:(CFLAG:LOCAL:74):85
+			
+			;このパッチをつけるまでに里子に出した子は含まれない
+		ENDIF
+	NEXT
+	FLAG:生理～出産まわりパッチVerUP用フラグ = 1
+ENDIF
+
+IF FLAG:生理～出産まわりパッチVerUP用フラグ <= 1
+	SETCOLOR 200, 200, 0
+	PRINTL -多生児出産と(ryパッチV1.1用フラグ適用完了-
+	RESETCOLOR
+
+	FOR LOCAL, 0, CHARANUM
+		;妊娠してない且つ診療所にいるなら開始位置に戻す
+		IF LOCAL != MASTER && !TALENT:LOCAL:妊娠 && CFLAG:LOCAL:現在位置 == 950
+			CFLAG:LOCAL:現在位置 = CFLAG:LOCAL:311
+		ENDIF
+	NEXT
+	FLAG:生理～出産まわりパッチVerUP用フラグ = 2
+ENDIF
+
+IF FLAG:生理～出産まわりパッチVerUP用フラグ <= 2
+	SETCOLOR 200, 200, 0
+	PRINTL -生理周期パッチ用初期処理完了-
+	RESETCOLOR
+	;生理周期ランダム設定
+	FOR LOCAL, 0, CHARANUM
+		;男(ふたなり以外)はスキップ
+		SIF TALENT:LOCAL:性別 == 2
+			CONTINUE
+		CFLAG:LOCAL:生理周期 = RAND:10
+	NEXT
+	FLAG:生理～出産まわりパッチVerUP用フラグ = 3
+ENDIF
+
+IF FLAG:生理～出産まわりパッチVerUP用フラグ <= 3
+	SETCOLOR 200, 200, 0
+	PRINTL -妊娠処理変更パッチ用フラグ適応完了-
+	RESETCOLOR
+	;子宮内体積設定(男も一応含む)
+	FOR LOCAL, 0, CHARANUM
+		CALL 子宮内体積設定(LOCAL)
+	NEXT
+	FLAG:生理～出産まわりパッチVerUP用フラグ  = 4
+ENDIF
+
+IF FLAG:生理～出産まわりパッチVerUP用フラグ <= 4
+	SETCOLOR 200, 200, 0
+	PRINTL -多生児出産と(ryパッチV1.3用フラグ適用完了-
+	RESETCOLOR
+	;相性０を１００にする
+	FOR LOCAL, 0, CHARANUM
+		FOR LOCAL:1, 0, CHARANUM
+			SIF RELATION:LOCAL:(LOCAL:1) == 0
+				RELATION:LOCAL:(LOCAL:1) = 100
+		NEXT
+	NEXT
+	;子供の相性再設定
+	FOR LOCAL, 0, CHARANUM
+		SIF NO:LOCAL == 148 || NO:LOCAL == 149
+			CALL 子供相性設定, LOCAL
+	NEXT
+	PRINTBUTTON "[OK]", 0
+	PRINTW
+	FLAG:生理～出産まわりパッチVerUP用フラグ  = 5
+ENDIF
+
+

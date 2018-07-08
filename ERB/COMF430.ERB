@@ -1,0 +1,686 @@
+;-------------------------------------------------
+;着替える
+;-------------------------------------------------
+@COM430
+	PRINTL 服を着替える事ができます
+	$INPUT_LOOP
+	CALL PRINT_STATE_CLOTH(MASTER)
+	PRINTL [0] - 帽子
+	PRINTL [1] - 靴
+	PRINTL [2] - 脚
+	PRINTL [3] - 下半身下着
+	PRINTL [4] - 下半身
+	PRINTL [5] - 上半身下着
+	PRINTL [6] - 上半身
+	PRINTL [7] - 全身上着
+	PRINTL [8] - プリセット
+	PRINTL [9] - すべて脱ぐ
+	PRINTL [100] - 戻る
+	INPUT
+	IF RESULT == 0
+		$INPUT_LOOP_0
+		PRINTL [0] - 脱ぐ
+		PRINTL [1] - 帽子
+		PRINTL [2] - ヘッドドレス
+		PRINTL [100] - 戻る
+		INPUT
+		IF RESULT == 0
+			EQUIP:MASTER:帽子 = 0
+		ELSEIF RESULT == 1
+			EQUIP:MASTER:帽子 = 1
+		ELSEIF RESULT == 2
+			EQUIP:MASTER:帽子 = 2
+		ELSEIF RESULT == 100
+			GOTO INPUT_LOOP
+		ELSE
+			GOTO INPUT_LOOP_0
+		ENDIF
+	ELSEIF RESULT == 1
+		$INPUT_LOOP_1
+		PRINTL [0] - 脱ぐ
+		PRINTL [1] - 靴
+		PRINTL [2] - 草履
+		PRINTL [3] - ブーツ
+		PRINTL [100] - 戻る
+		INPUT
+		IF RESULT == 0
+			EQUIP:MASTER:靴 = 0
+		ELSEIF RESULT == 1
+			EQUIP:MASTER:靴 = 1
+		ELSEIF RESULT == 2
+			EQUIP:MASTER:靴 = 2
+		ELSEIF RESULT == 3
+			EQUIP:MASTER:靴 = 3
+		ELSEIF RESULT == 100
+			GOTO INPUT_LOOP
+		ELSE
+			GOTO INPUT_LOOP_1
+		ENDIF
+	ELSEIF RESULT == 2
+		$INPUT_LOOP_2
+		PRINTL [0] - 脱ぐ
+		PRINTL [1] - 靴下
+		PRINTL [2] - ハイソックス
+		PRINTL [3] - ニーソックス
+		PRINTL [4] - ストッキング
+		PRINTL [5] - 足袋
+		PRINTL [100] - 戻る
+		INPUT
+		IF RESULT == 0
+			EQUIP:MASTER:靴下 = 0
+		ELSEIF RESULT == 1
+			EQUIP:MASTER:靴下 = 1
+		ELSEIF RESULT == 2
+			EQUIP:MASTER:靴下 = 2
+		ELSEIF RESULT == 3
+			EQUIP:MASTER:靴下 = 3
+		ELSEIF RESULT == 4
+			EQUIP:MASTER:靴下 = 4
+		ELSEIF RESULT == 5
+			EQUIP:MASTER:靴下 = 5
+		ELSEIF RESULT == 100
+			GOTO INPUT_LOOP
+		ELSE
+			GOTO INPUT_LOOP_2
+		ENDIF
+	ELSEIF RESULT == 3
+		$INPUT_LOOP_3
+		PRINTL [0] - 脱ぐ
+		PRINTL [1] - 男物
+		PRINTL [2] - 女物
+		PRINTL [3] - その他
+		PRINTL [100] - 戻る
+		INPUT
+		IF RESULT == 0
+			EQUIP:MASTER:下半身下着１ = 0
+			EQUIP:MASTER:下半身下着２ = 0
+			;CFLAG:MASTER:服装パターンオプション &= 1
+		ELSEIF RESULT == 1
+			$INPUT_LOOP_3_1
+			PRINTL [0] - トランクス
+			PRINTL [1] - ブリーフ
+			PRINTL [2] - ボクサーパンツ
+			PRINTL [100] - 戻る
+			INPUT
+			IF RESULT == 0
+				EQUIP:MASTER:下半身下着１ = 0
+				EQUIP:MASTER:下半身下着２ = 101
+			ELSEIF RESULT == 1
+				EQUIP:MASTER:下半身下着１ = 0
+				EQUIP:MASTER:下半身下着２ = 102
+			ELSEIF RESULT == 2
+				EQUIP:MASTER:下半身下着１ = 0
+				EQUIP:MASTER:下半身下着２ = 103
+			ELSEIF RESULT == 100
+				GOTO INPUT_LOOP_3
+			ELSE
+				GOTO INPUT_LOOP_3_1
+			ENDIF
+		ELSEIF RESULT == 2
+			$INPUT_LOOP_3_2
+			PRINTL [0] - 今日のパンティ
+			PRINTL [100] - 戻る
+			INPUT
+			IF RESULT == 0
+				CALL CLOTHES_Change_Knickers(MASTER)
+			ELSEIF RESULT == 100
+				GOTO INPUT_LOOP_3
+			ELSE
+				GOTO INPUT_LOOP_3_2
+			ENDIF
+		ELSEIF RESULT == 3
+			$INPUT_LOOP_3_3
+			PRINTL [0] - 貞操帯
+			PRINTL [1] - 絆創膏
+			PRINTL [100] - 戻る
+			INPUT
+			IF RESULT == 0
+				EQUIP:MASTER:下半身下着１ = 100
+				EQUIP:MASTER:下半身下着２ = 0
+			ELSEIF RESULT == 1
+				EQUIP:MASTER:下半身下着１ = 2
+				EQUIP:MASTER:下半身下着２ = 0
+			ELSEIF RESULT == 100
+				GOTO INPUT_LOOP_3
+			ELSE
+				GOTO INPUT_LOOP_3_3
+			ENDIF
+		ELSEIF RESULT == 100
+			GOTO INPUT_LOOP
+		ELSE
+			GOTO INPUT_LOOP_3
+		ENDIF
+	ELSEIF RESULT == 4
+		$INPUT_LOOP_4
+		PRINTL [0] - 脱ぐ
+		PRINTL [1] - ズボン型
+		PRINTL [2] - スカート型
+		PRINTL [100] - 戻る
+		INPUT
+		IF RESULT == 0
+			EQUIP:MASTER:下半身上着１ = 0
+			EQUIP:MASTER:下半身上着２ = 0
+			EQUIP:MASTER:スカート = 0
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 1
+			$INPUT_LOOP_4_1
+			PRINTL [0] - ズボン
+			PRINTL [1] - 半ズボン
+			PRINTL [2] - スパッツ
+			PRINTL [3] - ブルマ
+			PRINTL [4] - 袴
+			PRINTL [100] - 戻る
+			INPUT
+			IF RESULT == 0
+				EQUIP:MASTER:下半身上着１ = 1
+				EQUIP:MASTER:下半身上着２ = 0
+				EQUIP:MASTER:スカート = 0
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 1
+				EQUIP:MASTER:下半身上着１ = 0
+				EQUIP:MASTER:下半身上着２ = 1
+				EQUIP:MASTER:スカート = 0
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 2
+				EQUIP:MASTER:下半身上着１ = 2
+				EQUIP:MASTER:下半身上着２ = 0
+				EQUIP:MASTER:スカート = 0
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 3
+				EQUIP:MASTER:下半身上着１ = 0
+				EQUIP:MASTER:下半身上着２ = 2
+				EQUIP:MASTER:スカート = 0
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 4
+				EQUIP:MASTER:下半身上着１ = 3
+				EQUIP:MASTER:下半身上着２ = 0
+				EQUIP:MASTER:スカート = 0
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 100
+				GOTO INPUT_LOOP_4
+			ELSE
+				GOTO INPUT_LOOP_4_1
+			ENDIF
+		ELSEIF RESULT == 2
+			$INPUT_LOOP_4_2
+			PRINTL [0] - ミニスカート
+			PRINTL [1] - スカート
+			PRINTL [2] - ロングスカート
+			PRINTL [3] - タイトスカート
+			PRINTL [4] - 裳
+			PRINTL [100] - 戻る
+			INPUT
+			IF RESULT == 0
+				EQUIP:MASTER:下半身上着１ = 0
+				EQUIP:MASTER:下半身上着２ = 0
+				EQUIP:MASTER:スカート = 1
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 1
+				EQUIP:MASTER:下半身上着１ = 0
+				EQUIP:MASTER:下半身上着２ = 0
+				EQUIP:MASTER:スカート = 2
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 2
+				EQUIP:MASTER:下半身上着１ = 0
+				EQUIP:MASTER:下半身上着２ = 0
+				EQUIP:MASTER:スカート = 3
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 3
+				EQUIP:MASTER:下半身上着１ = 0
+				EQUIP:MASTER:下半身上着２ = 0
+				EQUIP:MASTER:スカート = 4
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 4
+				EQUIP:MASTER:下半身上着１ = 0
+				EQUIP:MASTER:下半身上着２ = 0
+				EQUIP:MASTER:スカート = 5
+				EQUIP:MASTER:ボディースーツ = 0
+				EQUIP:MASTER:ワンピース = 0
+				EQUIP:MASTER:着物 = 0
+				EQUIP:MASTER:レオタード = 0
+			ELSEIF RESULT == 100
+				GOTO INPUT_LOOP_4
+			ELSE
+				GOTO INPUT_LOOP_4_2
+			ENDIF
+		ELSEIF RESULT == 100
+			GOTO INPUT_LOOP
+		ELSE
+			GOTO INPUT_LOOP_4
+		ENDIF
+	ELSEIF RESULT == 5
+		$INPUT_LOOP_5
+		PRINTL [0] - 脱ぐ
+		PRINTL [1] - ブラジャー
+		PRINTL [2] - スポーツブラ
+		PRINTL [3] - ヌーブラ
+		PRINTL [4] - トップレスブラ
+		PRINTL [5] - サラシ
+		PRINTL [100] - 戻る
+		INPUT
+		IF RESULT == 0
+			EQUIP:MASTER:上半身下着１ = 0
+			EQUIP:MASTER:上半身下着２ = 0
+			;CFLAG:MASTER:服装パターンオプション &= 2
+		ELSEIF RESULT == 1
+			EQUIP:MASTER:上半身下着１ = 0
+			EQUIP:MASTER:上半身下着２ = 1
+		ELSEIF RESULT == 2
+			EQUIP:MASTER:上半身下着１ = 0
+			EQUIP:MASTER:上半身下着２ = 2
+		ELSEIF RESULT == 3
+			EQUIP:MASTER:上半身下着１ = 0
+			EQUIP:MASTER:上半身下着２ = 3
+		ELSEIF RESULT == 4
+			EQUIP:MASTER:上半身下着１ = 0
+			EQUIP:MASTER:上半身下着２ = 4
+		ELSEIF RESULT == 5
+			EQUIP:MASTER:上半身下着１ = 0
+			EQUIP:MASTER:上半身下着２ = 5
+		ELSEIF RESULT == 100
+			GOTO INPUT_LOOP
+		ELSE
+			GOTO INPUT_LOOP_5
+		ENDIF
+	ELSEIF RESULT == 6
+		$INPUT_LOOP_6
+		PRINTL [0] - 脱ぐ
+		PRINTL [1] - 上着
+		PRINTL [2] - ブラウス
+		PRINTL [3] - セーラー服
+		PRINTL [4] - ブレザー
+		PRINTL [5] - ワイシャツ
+		PRINTL [6] - 学ラン
+		PRINTL [7] - 白装束
+		PRINTL [100] - 戻る
+		INPUT
+		IF RESULT == 0
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 0
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 1
+			EQUIP:MASTER:上半身上着１ = 1
+			EQUIP:MASTER:上半身上着２ = 0
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 2
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 1
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 3
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 2
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 4
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 3
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 5
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 4
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 6
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 5
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 7
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 6
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 100
+			GOTO INPUT_LOOP
+		ELSE
+			GOTO INPUT_LOOP_6
+		ENDIF
+	ELSEIF RESULT == 7
+		$INPUT_LOOP_7
+		PRINTL [0] - 脱ぐ
+		PRINTL [1] - ボディースーツ
+		PRINTL [2] - ワンピース
+		PRINTL [3] - チャイナ服
+		PRINTL [4] - 着物
+		PRINTL [5] - スクール水着
+		PRINTL [6] - レオタード
+		PRINTL [100] - 戻る
+		INPUT
+		IF RESULT == 0
+			EQUIP:MASTER:下半身上着１ = 0
+			EQUIP:MASTER:下半身上着２ = 0
+			EQUIP:MASTER:スカート = 0
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 0
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 1
+			EQUIP:MASTER:下半身上着１ = 0
+			EQUIP:MASTER:下半身上着２ = 0
+			EQUIP:MASTER:スカート = 0
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 0
+			EQUIP:MASTER:ボディースーツ = 1
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 2
+			EQUIP:MASTER:下半身上着１ = 0
+			EQUIP:MASTER:下半身上着２ = 0
+			EQUIP:MASTER:スカート = 0
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 0
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 1
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 3
+			EQUIP:MASTER:下半身上着１ = 0
+			EQUIP:MASTER:下半身上着２ = 0
+			EQUIP:MASTER:スカート = 0
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 0
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 2
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 4
+			EQUIP:MASTER:下半身上着１ = 0
+			EQUIP:MASTER:下半身上着２ = 0
+			EQUIP:MASTER:スカート = 0
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 0
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 1
+			EQUIP:MASTER:レオタード = 0
+		ELSEIF RESULT == 5
+			EQUIP:MASTER:下半身下着１ = 0
+			EQUIP:MASTER:下半身下着２ = 0
+			EQUIP:MASTER:上半身下着１ = 0
+			EQUIP:MASTER:上半身下着２ = 0
+			EQUIP:MASTER:下半身上着１ = 0
+			EQUIP:MASTER:下半身上着２ = 0
+			EQUIP:MASTER:スカート = 0
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 0
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 1
+		ELSEIF RESULT == 6
+			EQUIP:MASTER:下半身下着１ = 0
+			EQUIP:MASTER:下半身下着２ = 0
+			EQUIP:MASTER:上半身下着１ = 0
+			EQUIP:MASTER:上半身下着２ = 0
+			EQUIP:MASTER:下半身上着１ = 0
+			EQUIP:MASTER:下半身上着２ = 0
+			EQUIP:MASTER:スカート = 0
+			EQUIP:MASTER:上半身上着１ = 0
+			EQUIP:MASTER:上半身上着２ = 0
+			EQUIP:MASTER:ボディースーツ = 0
+			EQUIP:MASTER:ワンピース = 0
+			EQUIP:MASTER:着物 = 0
+			EQUIP:MASTER:レオタード = 2
+		ELSEIF RESULT == 100
+			GOTO INPUT_LOOP
+		ELSE
+			GOTO INPUT_LOOP_7
+		ENDIF
+	ELSEIF RESULT == 8
+		$INPUT_LOOP_8
+		PRINTL [0] - 男装セット
+		PRINTL [1] - 女装セット
+		PRINTL [2] - メイドセット
+		PRINTL [3] - 私服セット
+		PRINTL [4] - キスメセット
+		PRINTL [5] - ヤマメセット
+		PRINTL [6] - パルスィセット
+		PRINTL [7] - 勇儀セット
+		PRINTL [8] - さとりセット
+		PRINTL [9] - 燐セット
+		PRINTL [10] - 空セット
+		PRINTL [11] - こいしセット
+		PRINTL [100] - 戻る
+		INPUT
+		IF RESULT == 0
+			CALL CLOTHES_Preset_MALE(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_0
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 1
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_0
+			ENDIF
+		ELSEIF RESULT == 1
+			CALL CLOTHES_Preset_FEMALE(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_1
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 2
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_1
+			ENDIF
+		ELSEIF RESULT == 2
+			CALL CLOTHES_Preset_MAID(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_2
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 4
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_2
+			ENDIF
+		ELSEIF RESULT == 3
+			$INPUT_LOOP_8_3_0
+			PRINTL [0] - 私服セットを読み込む
+			PRINTL [1] - 現在の服装を私服セットとして登録
+			INPUT
+			IF RESULT == 0
+				CALL CLOTHES_Preset_CUSTOM(MASTER)
+			ELSEIF RESULT == 1
+				CALL CLOTHES_Preset_CUSTOM_Save(MASTER)
+			ELSE
+				GOTO INPUT_LOOP_8_3_0
+			ENDIF
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_3_1
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 100
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_3_1
+			ENDIF
+		ELSEIF RESULT == 4
+			CALL CLOTHES_Preset_1(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_4
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 101
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_4
+			ENDIF
+		ELSEIF RESULT == 5
+			CALL CLOTHES_Preset_2(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_5
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 102
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_5
+			ENDIF
+		ELSEIF RESULT == 6
+			CALL CLOTHES_Preset_3(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_6
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 103
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_6
+			ENDIF
+		ELSEIF RESULT == 7
+			CALL CLOTHES_Preset_4(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_7
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 104
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_7
+			ENDIF
+		ELSEIF RESULT == 8
+			CALL CLOTHES_Preset_5(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_8
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 105
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_8
+			ENDIF
+		ELSEIF RESULT == 9
+			CALL CLOTHES_Preset_6(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_9
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 106
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_9
+			ENDIF
+		ELSEIF RESULT == 10
+			CALL CLOTHES_Preset_6(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_10
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 107
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_10
+			ENDIF
+		ELSEIF RESULT == 11
+			CALL CLOTHES_Preset_6(MASTER)
+			PRINTL 起床時にこの服を着ますか？
+			$INPUT_LOOP_8_11
+			PRINTL [0] - はい
+			PRINTL [1] - いいえ
+			INPUT
+			IF RESULT == 0
+				CFLAG:MASTER:服装パターン = 108
+			ELSEIF RESULT == 1
+				;
+			ELSE
+				GOTO INPUT_LOOP_8_11
+			ENDIF
+		ENDIF
+	ELSEIF RESULT == 9
+		CALL CLOTHES_Preset_NUDE(MASTER)
+	ELSEIF RESULT == 100
+		RETURN 0
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+	;EQUIPからCFLAGへセーブ
+	CALL CLOTHES_Save(MASTER)
+RETURN 0

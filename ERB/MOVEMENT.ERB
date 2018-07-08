@@ -1,0 +1,1247 @@
+;-------------------------------------------------------------------------------
+;キャラクターの移動
+@CHARA_MOVEMENT
+	;訪問者の移動処理
+	CALL VISITER_MOVEMENT
+	;同行者への影響チェック
+	CALL NTR_CHK_GOWITH(TIME_PROGRESS(TFLAG:300))
+	FOR LOCAL,0,CHARANUM
+		;尿量/便量増加@お手洗い勝手に拡張パッチ
+		TRYCALL REST_PeePoo_Increase(LOCAL)
+		; 紅魔館エリアの外なら移動しない
+		SIF CFLAG:LOCAL:現在位置 >= 900
+			CONTINUE
+		;MASTER以外が、睡眠中、MASTERと同室で、恋慕状態でなく、施錠ができて、MASTERの子供 でなければ追い出す
+		IF LOCAL > 0 && CFLAG:LOCAL:睡眠 && CFLAG:LOCAL:現在位置 == CFLAG:MASTER:現在位置 && !TALENT:LOCAL:恋慕 && FLAG:(300 + CFLAG:MASTER:現在位置) && CFLAG:LOCAL:父親 != MASTER && CFLAG:LOCAL:母親 != MASTER
+			IF CFLAG:LOCAL:衰弱
+				PRINTFORML %CALLNAME:LOCAL%は疲れて眠ってしまった…
+			ELSE
+				PRINTFORML %CALLNAME:LOCAL%に追い出された…
+			ENDIF
+			FOR LOCAL:1,0,MAXROOM()
+				;庭は除外
+				SIF LOCAL:1 == 16
+					CONTINUE
+				IF CAN_MOVE(CFLAG:MASTER:現在位置, LOCAL:1)
+					CFLAG:MASTER:現在位置 = LOCAL:1
+					BREAK
+				ENDIF
+			NEXT
+			;うふふリセット
+			CVARSET CFLAG, 317
+		ENDIF
+		;BASEの自然変動
+		;MASTERと同じ場所にいないとき
+		IF CFLAG:LOCAL:現在位置 != CFLAG:MASTER:現在位置
+			BASE:LOCAL:ムード = BASE:LOCAL:ムード - TIME_PROGRESS(TFLAG:300) * 2 * (BASE:LOCAL:ムード + 1000) / 1000
+			BASE:LOCAL:ムード = MAX(0,BASE:LOCAL:ムード)
+			BASE:LOCAL:理性 = BASE:LOCAL:理性 + TIME_PROGRESS(TFLAG:300) * (MAXBASE:LOCAL:理性 + 1000) / ((BASE:LOCAL:理性 + 1000) * 2)
+			BASE:LOCAL:理性 = MIN(MAXBASE:LOCAL:理性,BASE:LOCAL:理性)
+		ENDIF
+		;怒りは常に減少する
+		BASE:LOCAL:怒り = BASE:LOCAL:怒り - TIME_PROGRESS(TFLAG:300) * 5 / (CFLAG:LOCAL:怒り + 1)
+		SIF BASE:LOCAL:怒り <= 0
+			CFLAG:LOCAL:怒り = 0
+		BASE:LOCAL:怒り = MAX(0,BASE:LOCAL:怒り)
+		;不機嫌
+		SIF CFLAG:LOCAL:不機嫌
+			BASE:LOCAL:怒り = MAXBASE:LOCAL:怒り
+		;勃起度の自然減少
+		SIF CFLAG:LOCAL:勃起度２ <= CFLAG:LOCAL:勃起度 && !TCVAR:LOCAL:イきそう
+			BASE:LOCAL:勃起 = MAX(0,BASE:LOCAL:勃起 - TIME_PROGRESS(TFLAG:300) * 20)
+		;衰弱の処理
+		IF CFLAG:LOCAL:衰弱
+			BASE:LOCAL:体力 = MIN(BASE:LOCAL:体力 + 2 * TIME_PROGRESS(TFLAG:300),MAXBASE:LOCAL:体力)
+			BASE:LOCAL:気力 = MIN(BASE:LOCAL:気力 + 2 * TIME_PROGRESS(TFLAG:300),MAXBASE:LOCAL:気力)
+			CFLAG:LOCAL:衰弱 = MAX(CFLAG:LOCAL:衰弱 - TIME_PROGRESS(TFLAG:300),0)
+		ENDIF
+		;会話累積値
+		SIF TCVAR:LOCAL:301 > 100
+			TCVAR:LOCAL:302 = 1
+		TCVAR:LOCAL:301 = MAX(TCVAR:LOCAL:301 - TIME_PROGRESS(TFLAG:300) , 0)
+		SIF TCVAR:LOCAL:301 == 0
+			TCVAR:LOCAL:302 = 0
+		;身体の清潔度
+		LOCAL:1 = CFLAG:LOCAL:風呂
+		CFLAG:LOCAL:風呂 += TIME_PROGRESS(TFLAG:300)
+		IF BATHROOM(CFLAG:LOCAL:現在位置)
+			SIF LOCAL == 0 && LOCAL:1
+				PRINTFORMW %CALLNAME:MASTER%は風呂に浸かった
+			CFLAG:LOCAL:風呂 = 0
+		ENDIF
+		IF CFLAG:LOCAL:風呂 == 0
+			RESET_STAIN LOCAL
+			;アヌスを洗う
+			STAIN:LOCAL:Ａ = 0
+			CFLAG:LOCAL:射精者 = 0
+		ELSEIF CFLAG:LOCAL:風呂 > 120 && !CFLAG:LOCAL:うふふ
+			STAIN:LOCAL:Ａ |= 8
+		ENDIF
+		;同行フラグ（1時間持続）
+		CFLAG:LOCAL:同行 = MAX(CFLAG:LOCAL:同行 - TIME_PROGRESS(TFLAG:300),0)
+		SIF CFLAG:LOCAL:同行
+			CFLAG:LOCAL:現在位置 = CFLAG:MASTER:現在位置
+		IF LOCAL != MASTER
+			;あなた以外の処理
+			SIF CFLAG:LOCAL:うふふ
+				CONTINUE
+			SIF CFLAG:LOCAL:同行
+				CONTINUE
+			;部屋移動
+			SIF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置 && (FLAG:訪問者との行為の終了時刻 > TIME || FLAG:訪問者との行為の終了時刻 != 0)
+				CONTINUE
+			CALL CHARA_MOVEMENT_T(LOCAL)
+			IF RESULT
+				LOCAL:2 = RESULT
+				;%CALLNAME:MASTER%が見えたら態度に応じて接近しやすく
+				SIF CAN_MOVE(CFLAG:LOCAL:現在位置, CFLAG:MASTER:現在位置) == 2
+					RESULT:(CFLAG:MASTER:現在位置) += RESULT:(CFLAG:MASTER:現在位置) / 10 * CFLAG:LOCAL:馴れ合い強度度
+				;訪問者が紅魔館のアイドルならば、接近します。
+				SIF CAN_MOVE(CFLAG:LOCAL:現在位置, FLAG:訪問者の現在位置) == 2 
+					RESULT:(FLAG:訪問者の現在位置) += MAX(0, (CFLAG:LOCAL:屈服度 - CFLAG:LOCAL:好感度) / 3)
+				FOR LOCAL:1, 1, MAXROOM()
+					SIF RESULT:(LOCAL:2) < RESULT:(LOCAL:1)
+						LOCAL:2 = LOCAL:1
+				NEXT
+				;妊娠している場合はダッシュで帰る(強制)
+				IF CFLAG:LOCAL:にんっしんっ > 0
+					LOCAL:2 = GET_PRIVATE_ROOM(LOCAL, 0)
+				ENDIF
+				;尿意を感じた時、無理矢理トイレに向ける
+				IF (REST_NeedRestroom(LOCAL)>0) && !REST_IsRestRoom(CFLAG:LOCAL:現在位置)
+					LOCAL:2 = GO_TO_RESTROOM(LOCAL)
+				ENDIF
+				;トイレからの帰り道
+				IF AFTER_REST_ROOM(LOCAL)
+					LOCAL:2 = CFLAG:LOCAL:910
+					CFLAG:LOCAL:910 = 0
+				ENDIF
+				;訪問者と同じ位置にいて、屈服度が高い状態なら訪問者によるお仕置きが発生
+				IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置
+					SIF CFLAG:LOCAL:屈服度 > 500 && (CFLAG:LOCAL:屈服度 - 500) > RAND:500 && GET_N_WITH_VISITER(LOCAL) == 1
+						TRYCALL NTR_PUNISHMENT(LOCAL)
+				ENDIF
+				SIF CFLAG:LOCAL:現在位置 == LOCAL:2
+					CONTINUE
+				SIF (CAN_MOVE(CFLAG:MASTER:現在位置, CFLAG:LOCAL:現在位置) == 2 || CFLAG:LOCAL:同室) && !CFLAG:MASTER:睡眠
+					PRINTFORMW %CALLNAME:LOCAL%は【%GETPLACENAME(CFLAG:LOCAL:現在位置)%】から【%GETPLACENAME(LOCAL:2)%】に移動した
+				;DEBUGPRINTFORML %CALLNAME:LOCAL%:%GETPLACENAME(CFLAG:LOCAL:現在位置)%→%GETPLACENAME(LOCAL:2)%
+				IF LOCAL:2
+					IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置
+						FLAG:訪問者のムード = 0
+						FLAG:訪問者との行為の終了時刻 = 0
+						FLAG:訪問者との行為 = 0
+					ENDIF
+					CFLAG:LOCAL:現在位置 = LOCAL:2
+				ENDIF
+			ENDIF
+		ENDIF
+		;母乳ダダ漏れ対応
+		CALL PREGNACY_S_Milking(LOCAL)
+		;汚れを付ける
+		LOCAL:1 = CFLAG:LOCAL:睡眠 ? 0 # 1 + TALENT:LOCAL:幼稚 - 2 * ABL:LOCAL:清掃技能
+		FLAG:(100 + CFLAG:LOCAL:現在位置) = MAX(FLAG:(100 + CFLAG:LOCAL:現在位置) + LOCAL:1 * TIME_PROGRESS(TFLAG:300),0)
+		FLAG:(100 + CFLAG:LOCAL:現在位置) = MIN(FLAG:(100 + CFLAG:LOCAL:現在位置),6000)
+	NEXT
+
+	FOR LOCAL,0,CHARANUM
+		;トイレを済ませれたか、漏らしたかのチェック@お手洗い勝手に拡張パッチ
+		CALL REST_MovementCheck(LOCAL)
+	NEXT
+
+	;カメラ設置パッチ対応
+	TRYCALL SECRET_CAMERA
+	CALL INTRUDER_MOVEMENT
+;-------------------------------------------------------------------------------
+;キスメ
+@CHARA_MOVEMENT_ACTIVETIME_1(ARG)
+	;22時～8時は寝てる
+RETURN TIME > 1320 || TIME < 480 || CFLAG:ARG:衰弱
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_MOVERATE_1
+RETURN 90
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_1(ARG,ARG:1)
+	SELECTCASE ARG
+			;こもり気味
+		CASE 61,62,63,64,66
+			RETURN 80
+			;地霊殿には来ない
+		CASE 8,9,10,11,12,13,14,16,17
+			RETURN 0
+			;外周
+		CASE 1,2,3,4,5,6,7
+			RETURN 10
+			;風呂
+		CASE 65,22
+			IF CFLAG:1:風呂 < 1000
+				RETURN 0
+			ELSE
+				RETURN 200
+			ENDIF
+			;あとはおおよそ外周からの距離に依存
+		CASE 20,50,60,52,53,23
+			RETURN 40
+		CASE 25
+			RETURN 10
+		CASEELSE
+			RETURN 0
+	ENDSELECT
+
+;-------------------------------------------------------------------------------
+;ヤマメ
+@CHARA_MOVEMENT_ACTIVETIME_2(ARG)
+	;1時～８時は寝てる
+RETURN  (TIME > 60 && TIME < 480) || CFLAG:ARG:衰弱
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_MOVERATE_2
+RETURN 90
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_2(ARG,ARG:1)
+	SELECTCASE ARG
+			;地霊殿にはそんなに来ない
+		CASE 8,9,10,11,12,13,14,16,17
+			RETURN 0
+			;外周
+		CASE 1,2,3,4,5,6,7
+			RETURN 30
+			;風呂
+		CASE 55,22
+			IF CFLAG:1:風呂 < 1000
+				RETURN 0
+			ELSE
+				RETURN 200
+			ENDIF
+			;あとはおおよそ外周からの距離に依存
+		CASE 20
+			RETURN 80
+		CASE 50,51,52,53,54,56
+			RETURN 50
+		CASE 60,61,62,63,23
+			RETURN 40
+		CASE 30,40
+			RETURN 10
+		CASE 25
+			RETURN 10
+		CASEELSE
+			RETURN 0
+	ENDSELECT
+;-------------------------------------------------------------------------------
+;パルスィ
+@CHARA_MOVEMENT_ACTIVETIME_3(ARG)
+	;23時～7時は寝てる
+RETURN TIME > 1380 || TIME < 420 || CFLAG:ARG:衰弱
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_MOVERATE_3
+RETURN 90
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_3(ARG,ARG:1)
+	SELECTCASE ARG
+			;地霊殿にはそんなに来ない
+		CASE 8,9,10,11,12,13,14,16,17
+			RETURN 0
+			;外周
+		CASE 1,2,3,4,5,6,7
+			RETURN 10
+			;風呂
+		CASE 45,22
+			IF CFLAG:1:風呂 < 1000
+				RETURN 0
+			ELSE
+				RETURN 200
+			ENDIF
+			;基本的に自室か街道
+		CASE 20,40,43
+			RETURN 100
+		CASE 41,42,43,44,46
+			RETURN 40
+		CASE 23
+			RETURN 30
+		CASEELSE
+			RETURN 0
+	ENDSELECT
+;-------------------------------------------------------------------------------
+;勇儀
+@CHARA_MOVEMENT_ACTIVETIME_4(ARG)
+	;2時～９時は寝てる
+RETURN (TIME > 120 && TIME < 540) || CFLAG:ARG:衰弱
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_MOVERATE_4
+RETURN 90
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_4(ARG,ARG:1)
+	SELECTCASE ARG
+			;地霊殿にもボチボチ訪れる（部屋には入らない）
+		CASE 8,9,10,11,12,13,14,17
+			RETURN 0
+			;外周
+		CASE 1,2,3,4,5,6,7,14,16
+			RETURN 40
+			;風呂
+		CASE 35,22
+			IF CFLAG:4:風呂 < 1000
+				RETURN 0
+			ELSE
+				RETURN 200
+			ENDIF
+			;あとはおおよそ外周からの距離に依存
+		CASE 31,32,33,35,36
+			RETURN 30
+		CASE 20,30
+			RETURN 100
+		CASE 23
+			RETURN 20
+		CASEELSE
+			RETURN 0
+	ENDSELECT
+;-------------------------------------------------------------------------------
+;さとり
+@CHARA_MOVEMENT_ACTIVETIME_5(ARG)
+	;22時～7時は寝てる
+RETURN TIME > 1320 || TIME < 420 || CFLAG:ARG:衰弱
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_MOVERATE_5
+RETURN 50
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_5(ARG,ARG:1)
+	SELECTCASE ARG
+			;納屋と私室,街道も行かない
+		CASE 8,10,11,12,17,20,21,22,23
+			RETURN 0
+			;風呂
+		CASE 15
+			IF CFLAG:5:風呂 < 1000
+				RETURN 0
+			ELSE
+				RETURN 200
+			ENDIF
+			;あとはおおよそ外周からの距離に依存
+		CASE 14,13
+			RETURN 80
+		CASE 2,5
+			RETURN 60
+		CASE 3,4,
+			RETURN 40
+		CASE 6,7,16
+			RETURN 20
+		CASE 1
+			RETURN 10
+			;お手洗いパッチ
+			;基本的には屋内トイレを使用
+			;屋内トイレ
+		CASE 18
+			IF REST_NeedRestroom(1)
+				FOR LOCAL,0,CHARANUM
+					SIF CFLAG:LOCAL:現在位置 == 18
+						LOCAL:1++
+				NEXT
+				IF LOCAL:1 == 0
+					RETURN 10
+				ELSE
+					RETURN 0
+				ENDIF
+			ELSE
+				RETURN 0
+			ENDIF
+			;1Fトイレ
+		CASE 19
+			IF REST_NeedRestroom(1)
+				FOR LOCAL,0,CHARANUM
+					SIF CFLAG:LOCAL:現在位置 == 18
+						LOCAL:1 ++
+					SIF CFLAG:LOCAL:現在位置 == 19
+						LOCAL:2 ++
+				NEXT
+				IF LOCAL:2 < 2 && LOCAL:1 != 0
+					RETURN 10
+				ELSE
+					RETURN 0
+				ENDIF
+			ELSE
+				RETURN 0
+			ENDIF
+		CASEELSE
+			RETURN 0
+	ENDSELECT
+
+;-------------------------------------------------------------------------------
+;燐
+@CHARA_MOVEMENT_ACTIVETIME_6(ARG)
+	;2時～8時は寝てる
+RETURN (TIME > 120 && TIME < 600) || CFLAG:ARG:衰弱
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_MOVERATE_6
+RETURN 90
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_6(ARG,ARG:1)
+	SELECTCASE ARG
+			;納屋と私室
+		CASE 8,12,17,20,21,22,23
+			RETURN 0
+			;空の部屋は来る
+		CASE 10
+			RETURN 40
+			;風呂
+		CASE 15
+			IF CFLAG:6:風呂 < 1000
+				RETURN 0
+			ELSE
+				RETURN 200
+			ENDIF
+			;あとはおおよそ図書室からの距離に依存
+		CASE 1,2,4,5,11
+			RETURN  80
+		CASE 3,6,16
+			RETURN 70
+		CASE 7,9,14
+			RETURN 60
+		CASE 20,28
+			RETURN 10
+			;お手洗いパッチ
+			;基本的には屋内トイレを使用
+			;屋内トイレ
+		CASE 18
+			IF REST_NeedRestroom(1)
+				FOR LOCAL,0,CHARANUM
+					SIF CFLAG:LOCAL:現在位置 == 18
+						LOCAL:1++
+				NEXT
+				IF LOCAL:1 == 0
+					RETURN 10
+				ELSE
+					RETURN 0
+				ENDIF
+			ELSE
+				RETURN 0
+			ENDIF
+			;1Fトイレ
+		CASE 19
+			IF REST_NeedRestroom(1)
+				FOR LOCAL,0,CHARANUM
+					SIF CFLAG:LOCAL:現在位置 == 18
+						LOCAL:1 ++
+					SIF CFLAG:LOCAL:現在位置 == 19
+						LOCAL:2 ++
+				NEXT
+				IF LOCAL:2 < 2 && LOCAL:1 != 0
+					RETURN 10
+				ELSE
+					RETURN 0
+				ENDIF
+			ELSE
+				RETURN 0
+			ENDIF
+		CASEELSE
+			RETURN 0
+	ENDSELECT
+
+;-------------------------------------------------------------------------------
+;空
+@CHARA_MOVEMENT_ACTIVETIME_7(ARG)
+	;0時～9時は寝てる
+RETURN (TIME > 0 && TIME < 540) || CFLAG:ARG:衰弱
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_MOVERATE_7
+RETURN 100
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_7(ARG,ARG:1)
+	SELECTCASE ARG
+			;納屋と私室
+		CASE 8,12,13,17,20,21,22,23
+			RETURN 0
+			;燐の部屋は来る
+		CASE 11
+			RETURN 40
+			;風呂
+		CASE 15
+			IF CFLAG:7:風呂 < 1000
+				RETURN 0
+			ELSE
+				RETURN 200
+			ENDIF
+			;あとはおおよそ図書室からの距離に依存
+		CASE 2,4,10
+			RETURN 80
+		CASE 1,3,5,6
+			RETURN 60
+		CASE 7,16
+			RETURN 40
+		CASE 14
+			RETURN 20
+			;お手洗いパッチ
+			;基本的には屋内トイレを使用
+			;屋内トイレ
+		CASE 18
+			IF REST_NeedRestroom(1)
+				FOR LOCAL,0,CHARANUM
+					SIF CFLAG:LOCAL:現在位置 == 18
+						LOCAL:1++
+				NEXT
+				IF LOCAL:1 == 0
+					RETURN 10
+				ELSE
+					RETURN 0
+				ENDIF
+			ELSE
+				RETURN 0
+			ENDIF
+			;1Fトイレ
+		CASE 19
+			IF REST_NeedRestroom(1)
+				FOR LOCAL,0,CHARANUM
+					SIF CFLAG:LOCAL:現在位置 == 18
+						LOCAL:1 ++
+					SIF CFLAG:LOCAL:現在位置 == 19
+						LOCAL:2 ++
+				NEXT
+				IF LOCAL:2 < 2 && LOCAL:1 != 0
+					RETURN 10
+				ELSE
+					RETURN 0
+				ENDIF
+			ELSE
+				RETURN 0
+			ENDIF
+		CASEELSE
+			RETURN 0
+	ENDSELECT
+
+;-------------------------------------------------------------------------------
+;こいし
+@CHARA_MOVEMENT_ACTIVETIME_8(ARG)
+	;3時～7時は寝てる
+RETURN (TIME > 180 && TIME < 420) || CFLAG:ARG:衰弱
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_MOVERATE_8
+RETURN 50
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CHARA_MOVEMENT_8(ARG,ARG:1)
+	SELECTCASE ARG
+			;風呂
+		CASE 15
+			IF CFLAG:8:風呂 < 1000
+				RETURN 0
+			ELSE
+				RETURN 200
+			ENDIF
+			;お手洗いパッチ
+			;基本的には屋内トイレを使用
+			;屋内トイレ
+		CASE 18
+			IF REST_NeedRestroom(1)
+				FOR LOCAL,0,CHARANUM
+					SIF CFLAG:LOCAL:現在位置 == 18
+						LOCAL:1++
+				NEXT
+				IF LOCAL:1 == 0
+					RETURN 10
+				ELSE
+					RETURN 0
+				ENDIF
+			ELSE
+				RETURN 0
+			ENDIF
+			;1Fトイレ
+		CASE 19
+			IF REST_NeedRestroom(1)
+				FOR LOCAL,0,CHARANUM
+					SIF CFLAG:LOCAL:現在位置 == 18
+						LOCAL:1 ++
+					SIF CFLAG:LOCAL:現在位置 == 19
+						LOCAL:2 ++
+				NEXT
+				IF LOCAL:2 < 2 && LOCAL:1 != 0
+					RETURN 10
+				ELSE
+					RETURN 0
+				ENDIF
+			ELSE
+				RETURN 0
+			ENDIF
+		;無意識だからしゃーない
+		CASEELSE
+				RETURN 100
+	ENDSELECT
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@INTRUDER_MOVEMENT
+	VARSET LOCAL
+	SIF RAND:(TIME_PROGRESS(TFLAG:300) + 1) <= RAND:60
+		LOCAL = 1
+	SIF LOCAL || !FLAG:侵入者の現在位置
+		RETURN 0
+	FOR LOCAL,0,MAXROOM()
+		;施錠
+		IF FLAG:(300 + LOCAL)
+			LOCAL:1 = 100
+		ELSE
+			LOCAL:1 = 100
+		ENDIF		
+		RESULT:LOCAL = LOCAL:1 * (CAN_MOVE(FLAG:侵入者の現在位置, LOCAL) > 0)
+		SIF RESULT:LOCAL
+			RESULT:LOCAL = RAND:(RESULT:LOCAL) + 1
+	NEXT
+	FOR LOCAL,1,MAXROOM()
+		SIF RESULT:(LOCAL:1) < RESULT:LOCAL
+			LOCAL:1 = LOCAL
+	NEXT
+	IF CAN_MOVE(CFLAG:MASTER:現在位置, FLAG:侵入者の現在位置) == 2 || CFLAG:MASTER:現在位置 == FLAG:侵入者の現在位置
+		PRINTFORMW 魔理沙は【%GETPLACENAME(FLAG:侵入者の現在位置)%】から【%GETPLACENAME(LOCAL:1)%】に移動した
+	ELSE
+		LOCAL:2 = 1
+	ENDIF
+	SIF LOCAL:1
+		FLAG:侵入者の現在位置 = LOCAL:1
+	IF LOCAL:2 && CFLAG:MASTER:現在位置 == FLAG:侵入者の現在位置
+		PRINTFORMW 魔理沙が【%GETPLACENAME(LOCAL:1)%】に入ってきた
+	ENDIF
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@CAN_MOVE(ARG, ARG:1)
+	#FUNCTION
+	;RETURNF 2は間に扉がなく見透かせる。庭から二階は見えないが逆は見える
+	SELECTCASE ARG
+			;正門から
+		CASE 1
+			;広間
+			SIF ARG:1 == 2
+				RETURNF 1
+			;街道
+			SIF ARG:1 == 20
+				RETURNF 2
+			;広間から
+		CASE 2
+			;正門
+			SIF ARG:1 == 1
+				RETURNF 1
+			;中央
+			SIF ARG:1 == 3
+				RETURNF 2
+			;西廊下
+			SIF ARG:1 == 4
+				RETURNF 2
+			;東廊下
+			SIF ARG:1 == 5
+				RETURNF 2
+			;中央から
+		CASE 3
+			;広間
+			SIF ARG:1 == 2
+				RETURNF 2
+			;食堂
+			SIF ARG:1 == 6
+				RETURNF 1
+			;浴室
+			SIF ARG:1 == 15
+				RETURNF 1
+			;庭 + 見える
+			SIF ARG:1 == 16
+				RETURNF 2
+			;西から
+		CASE 4
+			;広間
+			SIF ARG:1 == 2
+				RETURNF 2
+			;あなた私室
+			SIF ARG:1 == 8
+				RETURNF 1
+			;動物部屋
+			SIF ARG:1 == 9
+				RETURNF 1
+			;空私室
+			SIF ARG:1 == 10
+				RETURNF 1
+			;燐私室
+			SIF ARG:1 == 11
+				RETURNF 1
+			;東から
+		CASE 5
+			;広間
+			SIF ARG:1 == 2
+				RETURNF 2
+			;こいし私室
+			SIF ARG:1 == 12
+				RETURNF 1
+			;さとり私室
+			SIF ARG:1 == 13
+				RETURNF 1
+			;屋内トイレ
+			SIF ARG:1 == 18
+				RETURNF 1
+			;書室
+			SIF ARG:1 == 14
+				RETURNF 1
+			;納屋から
+		CASE 6
+			;食堂
+			SIF ARG:1 == 7
+				RETURNF 1
+			SIF ARG:1 == 3
+				RETURNF 1
+			;厨房から
+		CASE 7
+			;食堂
+			SIF ARG:1 == 6
+				RETURNF 1
+			;あなた私室から
+		CASE 8
+			;西廊下
+			SIF ARG:1 == 4
+				RETURNF 1
+			;動物部屋から
+		CASE 9
+			;西廊下
+			SIF ARG:1 == 4
+				RETURNF 1
+			;空私室から
+		CASE 10
+			;西廊下
+			SIF ARG:1 == 4
+				RETURNF 1
+			;燐私室から
+		CASE 11
+			;西廊下
+			SIF ARG:1 == 4
+				RETURNF 1
+			;こいし私室から
+		CASE 12
+			;東廊下
+			SIF ARG:1 == 5
+				RETURNF 1
+			;さとり私室から
+		CASE 13
+			;東廊下
+			SIF ARG:1 == 5
+				RETURNF 1
+			;書室から
+		CASE 14
+			;東廊下
+			SIF ARG:1 == 5
+				RETURNF 1
+			;浴室から
+		CASE 15
+			;中央廊下
+			SIF ARG:1 == 3
+				RETURNF 1
+			;庭から
+		CASE 16
+			;中央廊下
+			SIF ARG:1 == 3
+				RETURNF 2
+			;物置
+			SIF ARG:1 == 17
+				RETURNF 1
+			;屋外トイレ
+			SIF ARG:1 == 19
+				RETURNF 1
+			;物置から
+		CASE 17
+			;庭
+			SIF ARG:1 == 16
+				RETURNF 1
+			;屋内トイレから
+		CASE 18
+			;東廊下
+			SIF ARG:1 == 5
+				RETURNF 1
+			;屋外トイレから
+		CASE 19
+			;庭
+			SIF ARG:1 == 16
+				RETURNF 1
+			;街道から
+		CASE 20
+			;地霊殿
+			SIF ARG:1 ==1
+				RETURNF 2
+			;トイレ
+			SIF ARG:1 ==21
+				RETURNF 1
+			;銭湯
+			SIF ARG:1 ==22
+				RETURNF 1
+			;風穴の底
+			SIF ARG:1 ==23
+				RETURNF 1
+			;勇儀宅
+			SIF ARG:1 ==30
+				RETURNF 1
+			;パルスィ宅
+			SIF ARG:1 ==40
+				RETURNF 1
+			;ヤマメ宅
+			SIF ARG:1 ==50
+				RETURNF 1
+			;キスメ宅
+			SIF ARG:1 ==60
+				RETURNF 1
+			;空き家
+			SIF ARG:1 ==70
+				RETURNF 1
+			;公衆トイレから
+		CASE 21
+			SIF ARG:1 == 20
+				RETURNF 1
+			;銭湯から
+		CASE 22
+			SIF ARG:1 == 20
+				RETURNF 1
+			;風穴の底から
+		CASE 23
+			SIF ARG:1 == 20
+				RETURNF 1
+
+			;勇儀宅から
+		CASE 30
+			SIF ARG:1 == 20
+				RETURNF 1
+			SIF ARG:1 == 31
+				RETURNF 1
+		CASE 31
+			SIF ARG:1 == 30
+				RETURNF 1
+			SIF ARG:1 == 32
+				RETURNF 1
+			SIF ARG:1 == 33
+				RETURNF 1
+			SIF ARG:1 == 35
+				RETURNF 1
+			SIF ARG:1 == 37
+				RETURNF 1
+		CASE 32
+			SIF ARG:1 == 31
+				RETURNF 1
+			SIF ARG:1 == 34
+				RETURNF 2
+			SIF ARG:1 == 36
+				RETURNF 2
+		CASE 33
+			SIF ARG:1 == 31
+				RETURNF 1
+		CASE 34
+			SIF ARG:1 == 32
+				RETURNF 2
+		CASE 35
+			SIF ARG:1 == 31
+				RETURNF 1
+		CASE 36
+			SIF ARG:1 == 32
+				RETURNF 2
+		CASE 37
+			SIF ARG:1 == 31
+				RETURNF 1
+				
+			;パルスィ宅から
+		CASE 40
+			SIF ARG:1 == 20
+				RETURNF 1
+			SIF ARG:1 == 41
+				RETURNF 1
+		CASE 41
+			SIF ARG:1 == 40
+				RETURNF 1
+			SIF ARG:1 == 42
+				RETURNF 1
+			SIF ARG:1 == 43
+				RETURNF 1
+			SIF ARG:1 == 45
+				RETURNF 1
+			SIF ARG:1 == 47
+				RETURNF 1
+		CASE 42
+			SIF ARG:1 == 41
+				RETURNF 1
+			SIF ARG:1 == 44
+				RETURNF 2
+			SIF ARG:1 == 46
+				RETURNF 2
+		CASE 43
+			SIF ARG:1 == 41
+				RETURNF 1
+		CASE 44
+			SIF ARG:1 == 42
+				RETURNF 2
+		CASE 45
+			SIF ARG:1 == 41
+				RETURNF 1
+		CASE 46
+			SIF ARG:1 == 42
+				RETURNF 2
+		CASE 47
+			SIF ARG:1 == 41
+				RETURNF 1
+				
+			;勇儀宅から
+		CASE 50
+			SIF ARG:1 == 20
+				RETURNF 1
+			SIF ARG:1 == 51
+				RETURNF 1
+		CASE 51
+			SIF ARG:1 == 50
+				RETURNF 1
+			SIF ARG:1 == 52
+				RETURNF 1
+			SIF ARG:1 == 53
+				RETURNF 1
+			SIF ARG:1 == 55
+				RETURNF 1
+			SIF ARG:1 == 57
+				RETURNF 1
+		CASE 52
+			SIF ARG:1 == 51
+				RETURNF 1
+			SIF ARG:1 == 54
+				RETURNF 2
+			SIF ARG:1 == 56
+				RETURNF 2
+		CASE 53
+			SIF ARG:1 == 51
+				RETURNF 1
+		CASE 54
+			SIF ARG:1 == 52
+				RETURNF 2
+		CASE 55
+			SIF ARG:1 == 51
+				RETURNF 1
+		CASE 56
+			SIF ARG:1 == 52
+				RETURNF 2
+		CASE 57
+			SIF ARG:1 == 51
+				RETURNF 1
+				
+			;勇儀宅から
+		CASE 60
+			SIF ARG:1 == 20
+				RETURNF 1
+			SIF ARG:1 == 61
+				RETURNF 1
+		CASE 61
+			SIF ARG:1 == 60
+				RETURNF 1
+			SIF ARG:1 == 62
+				RETURNF 1
+			SIF ARG:1 == 63
+				RETURNF 1
+			SIF ARG:1 == 65
+				RETURNF 1
+			SIF ARG:1 == 67
+				RETURNF 1
+		CASE 62
+			SIF ARG:1 == 61
+				RETURNF 1
+			SIF ARG:1 == 64
+				RETURNF 2
+			SIF ARG:1 == 66
+				RETURNF 2
+		CASE 63
+			SIF ARG:1 == 61
+				RETURNF 1
+		CASE 64
+			SIF ARG:1 == 62
+				RETURNF 2
+		CASE 65
+			SIF ARG:1 == 61
+				RETURNF 1
+		CASE 66
+			SIF ARG:1 == 62
+				RETURNF 2
+		CASE 67
+			SIF ARG:1 == 61
+				RETURNF 1
+				
+			;勇儀宅から
+		CASE 70
+			SIF ARG:1 == 20
+				RETURNF 1
+			SIF ARG:1 == 71
+				RETURNF 1
+		CASE 71
+			SIF ARG:1 == 70
+				RETURNF 1
+			SIF ARG:1 == 72
+				RETURNF 1
+			SIF ARG:1 == 73
+				RETURNF 1
+			SIF ARG:1 == 75
+				RETURNF 1
+			SIF ARG:1 == 77
+				RETURNF 1
+		CASE 72
+			SIF ARG:1 == 71
+				RETURNF 1
+			SIF ARG:1 == 74
+				RETURNF 2
+			SIF ARG:1 == 76
+				RETURNF 2
+		CASE 73
+			SIF ARG:1 == 71
+				RETURNF 1
+		CASE 74
+			SIF ARG:1 == 72
+				RETURNF 2
+		CASE 75
+			SIF ARG:1 == 71
+				RETURNF 1
+		CASE 76
+			SIF ARG:1 == 72
+				RETURNF 2
+		CASE 77
+			SIF ARG:1 == 71
+				RETURNF 1
+	ENDSELECT
+
+;-------------------------------------------------------------------------------
+;指定した時間から現在までの経過時間を返す
+;@param ARG  基準とする時間
+;@return 現在の時間との差分（分）
+@TIME_PROGRESS(ARG)
+	#FUNCTION
+RETURNF TIME + DAY * 1440 - ARG
+
+;-------------------------------------------------------------------------------
+;キャラクターを眠らせる処理
+;@param ARG:0 対象となるキャラクター
+@CHARA_SLEEP(ARG)
+	VARSET LOCAL
+	IF (CAN_MOVE(CFLAG:MASTER:現在位置, CFLAG:ARG:現在位置) == 2 || CFLAG:MASTER:現在位置 == CFLAG:ARG:現在位置) && !CFLAG:MASTER:睡眠
+		IF CFLAG:ARG:現在位置 == CFLAG:ARG:開始位置
+			IF TALENT:ARG:恋慕 == 1
+				IF CFLAG:ARG:睡眠
+					PRINTFORMW %CALLNAME:ARG%は眠っている
+				ELSE
+					PRINTFORMW %CALLNAME:ARG%は眠った
+				ENDIF
+				LOCAL = 2
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%は眠そうにしている
+				LOCAL = 1
+			ENDIF
+		ELSE
+			IF CFLAG:ARG:衰弱 && TALENT:ARG:恋慕 && CFLAG:MASTER:現在位置 == CFLAG:ARG:現在位置
+				PRINTFORMW %CALLNAME:ARG%を%GETPLACENAME(CFLAG:ARG:現在位置)%から%GETPLACENAME(CFLAG:ARG:311)%へ運びました
+				LOCAL = 3
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%は%GETPLACENAME(CFLAG:ARG:現在位置)%から%GETPLACENAME(CFLAG:ARG:311)%に戻りました
+				LOCAL = 0
+			ENDIF
+		ENDIF
+		;おやすみ口上
+		SIF CFLAG:MASTER:現在位置 == CFLAG:ARG:現在位置
+			CALL KOJO_EVENT(7, ARG, LOCAL)
+	ENDIF
+	;自室でねる
+	CFLAG:ARG:現在位置 = CFLAG:ARG:開始位置
+	SIF LOCAL == 3
+		CFLAG:MASTER:現在位置 = CFLAG:ARG:開始位置
+	;施錠
+	FLAG:(300 + CFLAG:ARG:現在位置) = 1
+	CFLAG:ARG:同行 = 0
+	CFLAG:ARG:睡眠 = 1
+	CFLAG:(ARG:0):就寝時間 = TIME_PROGRESS(0)
+	CFLAG:ARG:うふふ = 0
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;キャラクターを起こす処理
+;@param ARG:0 対象となるキャラクター
+@CHARA_AWAKE, ARG
+	IF CFLAG:ARG:睡眠 && CFLAG:ARG:現在位置 == CFLAG:MASTER:現在位置
+		SIF ARG > 0
+			PRINTFORMW %CALLNAME:ARG%が目を覚ました
+		;おはよう口上
+		CALL KOJO_EVENT(6, ARG)
+	ENDIF
+	CFLAG:ARG:睡眠 = 0
+	CFLAG:(ARG:0):起床時間 = TIME_PROGRESS(0)
+	;施錠
+	FLAG:(300 + CFLAG:ARG:現在位置) = 0
+RETURN 0
+
+;-------------------------------------------------------------------------------
+;キャラクターの移動
+;@param ARG:0 キャラクター番号
+;@return 1:行動可、0:行動不可
+@CHARA_MOVEMENT_T(ARG)
+	IF !CFLAG:ARG:幽閉 && !CFLAG:ARG:衰弱 && REST_NeedRestroom(ARG) > 1
+		;幽閉、衰弱以外で「漏らしそう」であれば活動時間帯に関係なく覚醒し、行動できる。
+		CALL CHARA_AWAKE, ARG
+		RETURN 1
+	ELSEIF !CFLAG:ARG:幽閉 && !CFLAG:ARG:衰弱 && AFTER_REST_ROOM(ARG)
+		;幽閉、衰弱以外でトイレから帰る時は常に行動可能（そうしないとトイレで寝てしまう）
+		RETURN 1
+	ENDIF
+	;活動時間帯のチェック
+	TRYCCALLFORM CHARA_MOVEMENT_ACTIVETIME_{ARG}(ARG)
+	CATCH
+		;個別指定が無ければ標準的な移動判定
+		IF NO:ARG == 148 || NO:ARG == 149
+			TRYCALL CHARA_MOVEMENT_ACTIVETIME_CHILD(ARG)
+		ELSE
+			;基本的には2時寝10時起き(いいのか？)
+			RESULT = (TIME > 120 && TIME < 600) || CFLAG:ARG:衰弱
+		ENDIF
+	ENDCATCH
+	IF RESULT
+		;活動時間帯判定の結果、寝ている時は行動不可
+		CALL CHARA_SLEEP, ARG
+		RETURN 0
+	ELSE
+		;目を覚ます
+		CALL CHARA_AWAKE, ARG
+	ENDIF
+	IF CFLAG:ARG:幽閉
+		;幽閉時は行動不可
+		RETURN 0
+	ENDIF
+	IF CFLAG:ARG:衰弱
+		;衰弱時は行動不可
+		RETURN 0
+	ENDIF
+	;移動確率の決定
+	TRYCCALLFORM CHARA_MOVEMENT_MOVERATE_{ARG}
+	CATCH
+		IF NO:ARG == 148 || NO:ARG == 149
+			TRYCALL CHARA_MOVEMENT_MOVERATE_CHILD(ARG)
+		ELSE
+			RESULT = 90
+		ENDIF
+	ENDCATCH
+	IF RAND:(TIME_PROGRESS(TFLAG:300) + 1) <= RAND:RESULT
+		RETURN 0
+	ENDIF
+	IF FLAG:訪問者のムード == CFLAG:ARG:現在位置 && FLAG:訪問者との行為の終了時刻 != 0
+		;訪問者に捕まっている場合(非監禁的な意味で)は移動不可
+		RETURN 0
+	ENDIF
+	;ここから移動場所の決定
+	VARSET RESULT
+	FOR LOCAL,1,MAXROOM()
+		TRYCCALLFORM CHARA_MOVEMENT_{ARG}(LOCAL,ARG)
+		CATCH
+			IF NO:ARG == 148 || NO:ARG == 149
+				TRYCALL CHARA_MOVEMENT_CHILD(LOCAL,ARG)
+			ELSE
+				SIF LOCAL != 6
+					RESULT = 100
+			ENDIF
+		ENDCATCH
+		RESULT:LOCAL = RESULT * (CAN_MOVE(CFLAG:ARG:現在位置, LOCAL) > 0 && CAN_MOVE(CFLAG:ARG:現在位置, LOCAL) < 3)
+		SIF LOCAL == CFLAG:ARG:現在位置
+			RESULT:LOCAL = 0
+		SIF RESULT:LOCAL
+			RESULT:LOCAL = RAND:(RESULT:LOCAL) + 1
+	NEXT
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;ARGで指定した場所にいる住人の人数を返す
+;ARG…場所の指定
+;戻り値…指定した場所にいる住人の人数
+@COUNT_MEM_IN_POS(ARG)
+	#FUNCTION
+	LOCAL = 0
+	FOR LOCAL:1,1,CHARANUM
+		SIF CFLAG:(LOCAL:1):現在位置 == ARG
+			LOCAL ++
+	NEXT
+RETURNF LOCAL
+
+;-------------------------------------------------------------------------------
+;現在位置が個人の私室か判定
+;ARG…キャラ番号
+;ARG:1…子悪魔例外処理フラグ 0:寝る部屋 1:うふふ時誘う場所
+@IS_PRIVATE_ROOM(ARG, ARG:1)
+	#FUNCTION
+RETURNF (CFLAG:ARG:現在位置 == GET_PRIVATE_ROOM(ARG, ARG:1) ? 1 # 0)
+
+;-------------------------------------------------------------------------------
+;個人の私室を返す
+;ARG…キャラ番号
+;ARG:1…子悪魔例外処理フラグ 0:寝る部屋 1:うふふ時誘う場所
+@GET_PRIVATE_ROOM(ARG, ARG:1)
+	#FUNCTION
+	LOCAL = 0
+	SELECTCASE ARG
+			; キスメ
+		CASE 1
+			LOCAL =	63
+			; ヤマメ
+		CASE 2
+			LOCAL =	53
+			; パルスィ
+		CASE 3
+			LOCAL =	43
+			; 勇儀
+		CASE 4
+			LOCAL =	33
+			; さとり
+		CASE 5
+			LOCAL =	13
+			; 燐
+		CASE 6
+			LOCAL =	11
+			; 空
+		CASE 7
+			LOCAL =	10
+			; こいし
+		CASE 8
+			LOCAL =	12
+			;その他
+		CASEELSE
+			LOCAL =	CFLAG:ARG:311
+	ENDSELECT
+RETURNF LOCAL

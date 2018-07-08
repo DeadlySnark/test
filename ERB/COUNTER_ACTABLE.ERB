@@ -1,0 +1,346 @@
+;-------------------------------------------------------------------------------
+;実行可否判定を行う
+@ACTABLE(ARG,ARG:1)
+	#FUNCTION
+	VARSET LOCAL
+	;前のキャラが何をしたかをLOCAL:100～に出力
+	FOR LOCAL,1,CHARANUM
+		SIF TARGET:LOCAL <= 0
+			CONTINUE
+		SIF TCVAR:(TARGET:LOCAL):20
+			LOCAL:(100 + TCVAR:(TARGET:LOCAL):20) ++
+	NEXT
+	;実行可否判定本体
+	SELECTCASE ARG:1
+			;色っぽい仕草
+		CASE 10
+			RETURNF 1
+			;見つめる
+		CASE 11
+			RETURNF 1
+			;体を摺り寄せる
+		CASE 12
+			RETURNF 1
+			;スカートを捲る
+		CASE 13
+			;スカート着用
+			SIF !EQUIP:PLAYER:9
+				RETURNF 0
+			SIF TEQUIP:PLAYER:0 > 3
+				RETURNF 0
+			;全裸
+			SIF !EQUIP:PLAYER:0
+				RETURNF 0
+			SIF !ONCE("スカートめくられ",1,ARG)
+				RETURNF 0
+			RETURNF 1
+			;耳元に息を吹きかける
+		CASE 14
+			;会話中はダメ
+			SIF SELECTCOM == 300
+				RETURNF 0
+			RETURNF 1
+			;尻を撫でる
+		CASE 15
+			;キス
+		CASE 30
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,4) == 0
+				RETURNF 0
+			SIF TFLAG:60
+				RETURNF 0
+			RETURNF 1
+			;後ろから抱きつく
+		CASE 31
+			SIF LOCAL:131
+				RETURNF 0
+			RETURNF 1
+			;前から抱きつく
+		CASE 32
+			SIF LOCAL:132
+				RETURNF 0
+			;キス
+			SIF LOCAL:131
+				RETURNF 0
+			RETURNF 1
+			;胸を揉ませる
+		CASE 33
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,3) == 0
+				RETURNF 0
+			SIF TFLAG:61
+				RETURNF 0
+			RETURNF 1
+			;股間をまさぐる
+		CASE 34
+			SIF TEQUIP:PLAYER:0 <= 3
+				RETURNF 0
+			SIF TFLAG:62
+				RETURNF 0
+			RETURNF 1
+			;スカートの中を見せる
+		CASE 35
+			;スカート着用
+			SIF !EQUIP:ARG:9
+				RETURNF 0
+			SIF TEQUIP:ARG:0 > 3
+				RETURNF 0
+			;全裸
+			SIF !EQUIP:MASTER:0
+				RETURNF 0
+			RETURNF 1
+			;胸を揉む
+		CASE 36
+			SIF !(HAS_VAGINA(MASTER))
+				RETURNF 0
+			SIF TEQUIP:PLAYER:1 < 1
+				RETURNF 0
+			SIF TFLAG:65
+				RETURNF 0
+			RETURNF 1
+			;手淫
+		CASE 50
+			SIF TFLAG:62
+				RETURNF 0
+			SIF ABL:ARG:指 < 1
+				RETURNF 0
+			RETURNF 1
+			;フェラチオ
+		CASE 51
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,4) == 0
+				RETURNF 0
+			SIF TFLAG:62
+				RETURNF 0
+			SIF !(HAS_PENIS(PLAYER))
+				RETURNF 0
+			SIF CFLAG:PLAYER:ペニス用貞操帯着用 != 0
+				RETURNF 0
+			SIF ABL:ARG:舌 < 1
+				RETURNF 0
+			RETURNF 1
+			;素股
+		CASE 52
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,0) == 0
+				RETURNF 0
+			SIF TFLAG:62
+				RETURNF 0
+			SIF ABL:ARG:腰 < 1
+				RETURNF 0
+			SIF !(HAS_PENIS(PLAYER))
+				RETURNF 0
+			SIF CFLAG:PLAYER:ペニス用貞操帯着用 != 0
+				RETURNF 0
+			;潤滑
+			SIF PALAM:ARG:潤滑 < 2000
+				RETURNF 0
+			RETURNF 1
+			;パイズリ
+		CASE 53
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,3) == 0
+				RETURNF 0
+			SIF TFLAG:62
+				RETURNF 0
+			SIF ABL:ARG:胸 < 1
+				RETURNF 0
+			SIF !(HAS_PENIS(PLAYER))
+				RETURNF 0
+			SIF CFLAG:PLAYER:ペニス用貞操帯着用 != 0
+				RETURNF 0
+			;[絶壁]だと不可
+			SIF TALENT:ARG:バストサイズ == -2
+				RETURNF 0
+			;[爆乳]なら技巧LV1以上、[巨乳]でなければ技巧3以上、[貧乳]だと技巧4以上必要
+			SIF TALENT:ARG:バストサイズ + ABL:ARG:技巧 < 3
+				RETURNF 0
+			RETURNF 1
+			;足コキ
+		CASE 54
+			SIF TCVAR:MASTER:120 != 1
+				RETURNF 0
+			SIF TFLAG:62
+				RETURNF 0
+			SIF !(HAS_PENIS(PLAYER))
+				RETURNF 0
+			SIF CFLAG:MASTER:ペニス用貞操帯着用 != 0
+				RETURNF 0
+			SIF ABL:ARG:サドっ気 < 1
+				RETURNF 0
+			RETURNF 1
+			;アナル愛撫
+		CASE 55
+			SIF TFLAG:64
+				RETURNF 0
+			SIF ABL:ARG:指 < 1
+				RETURNF 0
+			RETURNF 1
+			;アナル舐め
+		CASE 56
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,4) == 0
+				RETURNF 0
+			SIF TFLAG:64
+				RETURNF 0
+			SIF STAIN:PLAYER:Ａ & 8 && TALENT:ARG:汚臭耐性 < 1
+				RETURNF 0
+			SIF ABL:ARG:舌 < 1
+				RETURNF 0
+			RETURNF 1
+			;指挿入
+		CASE 57
+			SIF TFLAG:63
+				RETURNF 0
+			SIF TALENT:PLAYER:処女
+				RETURNF 0
+			SIF !(HAS_VAGINA(PLAYER))
+				RETURNF 0
+			RETURNF 1
+			;胸愛撫
+		CASE 58
+			SIF TFLAG:65
+				RETURNF 0
+			SIF ABL:ARG:指 < 1
+				RETURNF 0
+			RETURNF 1
+			;乳首吸い
+		CASE 59
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,4) == 0
+				RETURNF 0
+			SIF TFLAG:65
+				RETURNF 0
+			SIF ABL:ARG:舌 < 1
+				RETURNF 0
+			RETURNF 1
+			;ディープキス
+		CASE 60
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,4) == 0
+				RETURNF 0
+			SIF TFLAG:60
+				RETURNF 0
+			RETURNF 1
+			;クンニ強制
+		CASE 70
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,0) == 0
+				RETURNF 0
+			SIF !(HAS_VAGINA(ARG))
+				RETURNF 0
+			SIF TFLAG:60
+				RETURNF 0
+			RETURNF 1
+			;フェラチオ強制
+		CASE 71
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,0) == 0
+				RETURNF 0
+			SIF !(HAS_PENIS(ARG))
+				RETURNF 0
+			SIF TFLAG:60
+				RETURNF 0
+			RETURNF 1
+			;アナル奉仕
+		CASE 72
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,2) == 0
+				RETURNF 0
+			SIF TFLAG:60
+				RETURNF 0
+			RETURNF 1
+			;ぱふぱふ
+		CASE 73
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,3) == 0
+				RETURNF 0
+			SIF !(HAS_VAGINA(PLAYER))
+				RETURNF 0
+			SIF TFLAG:60
+				RETURNF 0
+			RETURNF 1
+			;乳合わせ
+		CASE 74
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,3) == 0
+				RETURNF 0
+			SIF !(HAS_VAGINA(PLAYER))
+				RETURNF 0
+			SIF TFLAG:65
+				RETURNF 0
+			RETURNF 1
+			;タワシ洗い
+		CASE 75
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,4) == 0
+				RETURNF 0
+			SIF !(HAS_VAGINA(PLAYER))
+				RETURNF 0
+			;潤滑
+			SIF PALAM:ARG:潤滑 < 500
+				RETURNF 0
+			;口が空いてればクンニさせる
+			SIF !TFLAG:60
+				RETURNF 0
+			SIF TFLAG:61 > 1
+				RETURNF 0
+			RETURNF 1
+			;正常位/挿入される
+		CASE 80
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,1) == 0
+				RETURNF 0
+			SIF !(HAS_PENIS(ARG))
+				RETURNF 0
+			SIF !(HAS_VAGINA(PLAYER))
+				RETURNF 0
+			SIF BASE:ARG:勃起 < 1000
+				RETURNF 0
+			SIF TFLAG:63
+				RETURNF 0
+			RETURNF 1
+			;騎乗位アナル
+		CASE 81
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,2) == 0
+				RETURNF 0
+			SIF !(HAS_PENIS(ARG))
+				RETURNF 0
+			SIF BASE:ARG:勃起 < 1000
+				RETURNF 0
+			SIF PALAM:PLAYER:潤滑 < PALAMLV:2 && !TALENT:ARG:サド && ABL:ARG:サドっ気 < 1
+				RETURNF 0
+			SIF TFLAG:64
+				RETURNF 0
+			RETURNF 1
+			;後背位アナル
+		CASE 82
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,2) == 0
+				RETURNF 0
+			SIF !(HAS_PENIS(ARG))
+				RETURNF 0
+			SIF BASE:ARG:勃起 < 1000
+				RETURNF 0
+			SIF PALAM:PLAYER:潤滑 < PALAMLV:2 && !TALENT:ARG:サド && ABL:ARG:サドっ気 < 1
+				RETURNF 0
+			SIF TFLAG:64
+				RETURNF 0
+			RETURNF 1
+			;背面座位アナル
+		CASE 83
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,2) == 0
+				RETURNF 0
+			SIF !(HAS_PENIS(ARG))
+				RETURNF 0
+			SIF BASE:ARG:勃起 < 1000
+				RETURNF 0
+			SIF PALAM:PLAYER:潤滑 < PALAMLV:2 && !TALENT:ARG:サド && ABL:ARG:サドっ気 < 1
+				RETURNF 0
+			SIF TFLAG:64
+				RETURNF 0
+			RETURNF 1
+			;;騎乗位(逆レイプ）
+		CASE 91
+			SIF !COM417_is_Protected_CheckOnly(MASTER,ARG,1) == 0
+				RETURNF 0
+			SIF !(HAS_PENIS(PLAYER))
+				RETURNF 0
+			SIF CFLAG:MASTER:ペニス用貞操帯着用 != 0
+				RETURNF 0
+			SIF !(HAS_VAGINA(ARG))
+				RETURNF 0
+			SIF BASE:PLAYER:勃起 <= 1000
+				RETURNF 0
+			;潤滑
+			SIF PALAM:ARG:潤滑 <= 3000
+				RETURNF 0
+			SIF TFLAG:62
+				RETURNF 0
+			RETURNF 1
+	ENDSELECT
+RETURNF 0

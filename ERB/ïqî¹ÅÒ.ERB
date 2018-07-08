@@ -1,0 +1,151 @@
+;客口上======================================
+;TYPE1 DQN・口悪い系
+;TYPE2 紳士のような変態系
+;TYPE3 おっさん系
+;TYPE4 キモデブ系
+;TYPE5 性経験少ない系
+;TYPE6 擬音系
+@客口上, ARG, ARG:1
+;ARG キャラ番号
+;ARG:1 行為
+SIF TALENT:ARG:公衆便所 == 0
+	RETURN 0
+;訪問者宅からお帰り
+IF ARG:1 == 0
+	PRINTDATAL
+		;TYPE2
+		DATAFORM 『とてもよかったよ%CALLNAME:ARG%くん、またお相手よろしくね』
+		;TYPE3
+		DATAFORM 『それじゃあ、また今度たのむよ%CALLNAME:ARG%ちゃん』
+		;TYPE4
+		DATAFORM 『つ、次会う時は二人だけの方がいいなぁ～』
+	ENDDATA
+;会話
+ELSEIF ARG:1 == 1
+	PRINTDATAL
+		;TYPE2
+		; 何言ってんだこいつ
+		DATAFORM 『こういったちょっとした会話も性行為の一種なのですよ』
+		;TYPE3
+		DATAFORM 『君、年いくつ？ いつもは何をしてるの？』
+		DATAFORM 『こういう事ってどのくらいしてるの？ もしかして初めてだったりするのかな？』
+		;TYPE4
+		DATAFORM 『じゃ、じゃあ、%CALL_K_NAME(ARG)%って呼んでもいいかなぁ…？』
+	ENDDATA
+;キス
+ELSEIF ARG:1 == 2
+	PRINTDATAL
+		;TYPE2
+		DATAFORM 『舌の先をこすり合わせて…ん…そう、その調子』
+		;TYPE3
+		DATAFORM 『れる、れるんっ、んん～やはり女の子の歯を嘗め回すのは最高だ』
+		;TYPE4
+		DATAFORM 『でゅふぅ～、%CALLNAME:ARG%たんの舌、ちょっとザラッとしてて気持ちいいよぉ～』
+		;TYPE6
+		DATAFORM 『ん～～まっ、ちゅぱっちゅばっ、ちゅるるる…んぐッ』
+		DATAFORM 『れるれるれるれるれろれるれるれるれろれろれるれるれるれるれる』
+	ENDDATA
+;６９
+ELSEIF ARG:1 == 3
+	PRINTDATAL
+		;TYPE1
+		DATAFORM 『うっわ、もうマン汁がたれてやがる、まったくエロい女だな%CALLNAME:ARG%は』
+		;TYPE2
+		DATAFORM 『こんなに濡らしてしまって…、そんなに私としたいのかい？』
+		DATAFORM 『おぉ、とても気持ちいい舌使いだ、では私も君のココを…』
+		;TYPE3
+		DATAFORM 『凄くいやらしい臭いだ、おじさんこれだけでピンコ立ちしそうだよ』
+		;TYPE4
+		DATAFORM 『あぁ～%CALLNAME:ARG%たんのマンコ汁、粘りが強くてとっても甘いよぉ%UNICODE(0x2764)%』
+		;TYPE5
+		DATAFORM 『（うわぁ、凄い…もうこんなに濡れてる…）』
+		DATAFORM 『こ…こんな体勢でしてくれるんだ……じゃあボクはここを…』
+		;TYPE6
+		DATAFORM 『ん～～まっ、ちゅぱっちゅばっ、ちゅるるる…んぐッ』
+		DATAFORM 『れるれるれるれるれろれるれるれるれろれろれるれるれるれるれる』
+	ENDDATA
+;性交
+ELSEIF ARG:1 == 4
+	PRINTDATAL
+		;TYPE1
+		DATAFORM 『オラァッ、もっと喘げよ、肉便器に成り下がった豚のくせによぉっ！』
+		DATAFORM 『あ～やべぇ、%CALLNAME:ARG%のマンコ凄ぇ気持ちいい』
+		;TYPE2
+		DATAFORM 『気持ちいいかい？ でもこれからもっと気持ちよくなるんだよ、そらっ』
+		DATAFORM 『いい締め付けだよ%CALLNAME:ARG%くん、その調子でもっと感じてくれたまえ』
+		DATALIST
+			DATAFORM 『%CALLNAME:ARG%くんは\@ RAND:2 == 0 ?奥を突かれるのが#浅い所を攻められるのが\@好きなんだね』
+			DATAFORM 『ほら、こうすると…ん…凄い締め付けてくるよ』
+		ENDLIST
+		;TYPE3
+		DATAFORM 『いい顔してるね%CALLNAME:ARG%ちゃん、そんなにおじさんのペニスが気に入ったのかい』
+		DATAFORM 『ほら、もっとおねだりしてごらん、「おじさんのちんぽもっと奥まで下さい」って…』
+		;TYPE4
+		DATAFORM 『あ"ぁ～、いいっ、いいよっ…%CALLNAME:ARG%たんの膣内キュッキュッって締め付けてくるよぉ"～』
+		DATAFORM 『こ、こんなに締め付けて…もしかしてボクのペニスと%CALLNAME:ARG%たんのオマンコって相性抜群なのかも…』
+		DATAFORM 『いいよぉ、いいよぉ！ %CALL_K_NAME(ARG)%の喘ぎ声、最ッ高だよぉ』
+		;TYPE5
+		DATAFORM 『くっ、凄い締め付けだ…これじゃあ先にイっちゃいそうだよ』
+		DATAFORM 『ふぅっ、んっ、…あぁ、凄く気持ちいいよ、%CALLNAME:ARG%』
+		;TYPE6
+		; とある漫画の性交時の男の声
+		DATAFORM 『ハフハフ、ハフハフ』
+		; ELONA（うろ覚え）
+		DATAFORM 『フゥーーーッ！…フーー…フーーーンッ！！』
+	ENDDATA
+;射精
+ELSEIF ARG:1 == 5
+	PRINTDATAL
+		;TYPE1
+		DATAFORM 『おらっ出すぞっ……くっ…』
+		DATAFORM 『あーもう無理、もう出るっ、%CALLNAME:ARG%、中に出すぞ…そらっ孕めぇっ！』
+		;TYPE2
+		DATAFORM 『ああっ…で、出る、私の1億の精子が%CALLNAME:ARG%くんの子宮めがけて発射されるっっ！』
+		;TYPE3
+		DATAFORM 『ん…そろそろ出すぞ…さあ%CALLNAME:ARG%ちゃん、しっかり受け止めるんだぞ』
+		;TYPE4
+		DATAFORM 『%CALL_K_NAME(ARG)%、ああ、%CALL_K_NAME(ARG)%、%CALL_K_NAME(ARG)%、いく、イくよぉ、中に出すよぉ……あっ…いくイくイクイク…』
+		;TYPE5
+		DATAFORM 『うっ…ごめん%CALLNAME:ARG%…もう…限界…っ！』
+		;TYPE6
+		DATAFORM 『あ、あ、ぁ、ぉ、お、おおぉおおおぉおおおぉぉんっ…っ』
+	ENDDATA
+ENDIF
+
+
+	
+@CALL_K_NAME(ARG)
+#FUNCTIONS
+SELECTCASE ARG
+	;キスメ
+	CASE 1
+		;そのまんま
+		RETURNF "キスメたん"
+	;ヤマメ
+	CASE 2
+		RETURNF "ヤマメちゃん"
+	;パルスィ
+	CASE 3
+		RETURNF "ぱるちゃん"
+	;勇儀
+	CASE 4
+		RETURNF "勇儀たん"
+	;さとり
+	CASE 5
+		RETURNF "さとりん"
+	;燐
+	CASE 6
+		RETURNF "おりんりん"
+	;空
+	CASE 7
+		RETURNF "お空たん"
+	;こいし
+	CASE 8
+		RETURNF "こいしたん"
+	;子供とか
+	CASEELSE
+		RETURNF @"%CALLNAME:ARG%たん"
+	
+ENDSELECT
+
+

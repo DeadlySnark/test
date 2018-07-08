@@ -1,0 +1,145 @@
+;-------------------------------------------------------------------------------
+;１日の開始時の処理
+@EVENTTRAIN
+	#PRI
+	#DIM キャラ番号
+	VARSET TARGET
+	;各種数値の初期化
+	FOR キャラ番号,0,CHARANUM
+		;衣装設定
+		CALL CLOTHES_SETTING(キャラ番号)
+		CALL CLOTHES_SETTING_TRAIN(キャラ番号)
+		;BASEの初期化
+		CALL BEFORETRAIN_ResetBases(キャラ番号)
+		;CFLAGの初期化
+		CFLAG:キャラ番号:勃起度 = 0
+		;TCVARSの初期化
+		CALL BEFORETRAIN_ResetTCVars(キャラ番号)
+		;性交フラグ
+		TEQUIP:キャラ番号:Ｖセックス = -1
+		TEQUIP:キャラ番号:Ａセックス = -1
+		;射精処理用文字列変数
+		CSTR:キャラ番号:10 = /
+		CSTR:キャラ番号:11 = /
+	NEXT
+	SIF SAVESTR:10 == ""
+		SAVESTR:10 = /
+	;料理
+	FLAG:料理 = 0
+	;時間
+	IF TIME > CFLAG:MASTER:通常起床時間
+		DAY ++
+		TIME -= 1440
+	ENDIF
+	;30分毎に館内のキャラを移動させる
+	LOCAL = 1
+	WHILE LOCAL
+		IF TIME + 30 < CFLAG:MASTER:通常起床時間
+			TFLAG:300 = TIME + 1440 * DAY
+			TIME += 30
+			CALL CHARA_MOVEMENT
+		ELSE
+			FOR キャラ番号,0,CHARANUM
+				;現在位置の保存
+				CFLAG:キャラ番号:前ターン位置 = CFLAG:キャラ番号:現在位置
+			NEXT
+			TIME =  CFLAG:MASTER:通常起床時間
+			TFLAG:300 = TIME + 1440 * DAY
+			CALL CHARA_MOVEMENT
+			BREAK
+		ENDIF
+	WEND
+	CALL GOODMORNING
+	IF !RAND:10 && CFLAG:MASTER:現在位置 != 900
+		FLAG:侵入者の現在位置 = 1
+		PRINTFORMW 館に侵入者があったようだ！
+	ELSE
+		FLAG:侵入者の現在位置 = 0
+	ENDIF
+	TRYCALL 子供訪問_1
+	;NTR関連フラグの日毎クリア
+	CALL NTR_CLEAR_FLG
+	CALL VISITER_APPEARANCE
+	;起床時間の記録
+	CFLAG:MASTER:起床時間 = 1440 * DAY + TIME
+	;体力気力の回復
+	BASE:MASTER:体力 += MAXBASE:MASTER:体力 * (CFLAG:MASTER:起床時間 - CFLAG:MASTER:就寝時間 ) / 2 * (480 -120 * TALENT:MASTER:回復速度)
+	BASE:MASTER:気力 += MAXBASE:MASTER:気力 * (CFLAG:MASTER:起床時間 - CFLAG:MASTER:就寝時間 ) / (480 -120 * TALENT:MASTER:回復速度)
+	BASE:MASTER:体力 = MIN(MAXBASE:MASTER:体力,BASE:MASTER:体力)
+	BASE:MASTER:気力 = MIN(MAXBASE:MASTER:気力,BASE:MASTER:気力)
+	BASE:MASTER:勃起 = MIN(1000 * BASE:MASTER:体力 / MAXBASE:MASTER:体力,1500)
+	;勃起ペナルティ判定
+	CALL SOJI_SexHara_ErectPunishment(MASTER)
+	;調教者は誰か
+	IF ASSIPLAY == 0
+		PLAYER = MASTER
+	ELSE
+		PLAYER = ASSI
+	ENDIF
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@BEFORETRAIN_ResetBases(キャラ番号)
+	#DIM キャラ番号
+	;射精、勃起、ムード、理性、怒り
+	BASE:キャラ番号:射精 = 0
+	BASE:キャラ番号:ムード = 0
+	BASE:キャラ番号:理性 = MAXBASE:(キャラ番号):理性
+	BASE:キャラ番号:怒り = 0
+	BASE:キャラ番号:勃起 = 0
+	BASE:キャラ番号:満足 = 0
+	BASE:(キャラ番号):精力 = 0
+	IF HAS_PENIS(キャラ番号)
+		MAXBASE:(キャラ番号):精力 = MIN(MAXBASE:(キャラ番号):精力,10000)
+		BASE:(キャラ番号):精力 = MAXBASE:(キャラ番号):精力
+	ENDIF
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@BEFORETRAIN_ResetCFlags(ARG:0)
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;FIXME:関数の説明を書いてください
+;@return 1:xxx,0:xxx
+@BEFORETRAIN_ResetTCVars(キャラ番号)
+	#DIM キャラ番号
+	;経験表示用
+	FOR LOCAL:1,0,100
+		TCVAR:キャラ番号:(400 + LOCAL:1) = EXP:キャラ番号:(LOCAL:1)
+	NEXT
+	TCVAR:キャラ番号:100 = -1
+	TCVAR:キャラ番号:101 = -1
+	;中出し表示用フラグ
+	TCVAR:キャラ番号:103 = -1
+	TCVAR:キャラ番号:105 = -1
+RETURN 1
+
+;-------------------------------------------------------------------------------
+;起床処理
+;@return 1:xxx,0:xxx
+@GOODMORNING
+	VARSET LOCAL
+	TARGET = 0
+	FOR LOCAL,1,CHARANUM
+		SIF CFLAG:MASTER:現在位置 == CFLAG:LOCAL:現在位置
+			TARGET = LOCAL
+	NEXT
+	IF TARGET
+		IF CFLAG:TARGET:睡眠
+			PRINTFORMW %CALLNAME:MASTER%が目覚めると隣ではまだ%CALLNAME:TARGET%がすやすやと眠っていた
+			PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:TARGET%を起こさないようにベッドを抜け出し一日の準備を始めた
+		ELSE
+			IF TALENT:恋慕
+				PRINTFORMW %CALLNAME:MASTER%が目覚めると%CALLNAME:TARGET%と目があった
+				PRINTFORMW しばらく%CALLNAME:TARGET%と視線をかわしてからベッドを抜け出し一日の準備を始めた
+			ELSE
+				PRINTFORMW %CALLNAME:MASTER%が目覚めると%CALLNAME:TARGET%と目があった
+				PRINTFORMW なぜ%CALLNAME:TARGET%が部屋にいるのだろうと不審に思いながらもベッドを抜け出し一日の準備を始めた
+			ENDIF
+			CALL KOJO_EVENT(6, TARGET, 1)
+		ENDIF
+	ENDIF

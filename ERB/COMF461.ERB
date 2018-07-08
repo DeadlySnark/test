@@ -1,0 +1,194 @@
+;-------------------------------------------------
+;脱走する
+;-------------------------------------------------
+@COM461
+$COM461_TOP
+;CALL NTR_HOME_IN
+SIF RESULT == 1
+	RETURN 0
+PRINTL 
+PRINTL どこを調べますか？
+PRINTL 
+PRINT ■■■￣■■■ 
+PRINTBUTTON "１:扉 ",1
+PRINTL 
+PRINT ■
+PRINTBUTTON "２",2
+PRINT 　
+PRINTBUTTON "１",1
+PRINT 　
+PRINTBUTTON "３",3
+PRINT ■ 
+PRINTBUTTON "２:本棚 ",2
+PRINTBUTTON "３:植木 ",3
+PRINTL 
+PRINTL ■　　　　　■ 
+PRINT ■　　
+PRINTBUTTON "４",4
+PRINT 　
+PRINTBUTTON "５",5
+PRINT ■ 
+PRINTBUTTON "４:部屋中央 ",4
+PRINTBUTTON "５:箪笥 ",5
+PRINTL 
+PRINTL ■　　　　　■ 
+PRINT ■
+PRINTBUTTON "６",6
+PRINT 　　　　■ 
+PRINTBUTTON "６:ベッド ",6
+PRINTL 
+PRINT ■■■＿■■■ 
+PRINTBUTTON "７:窓 ",7
+PRINTL 
+PRINTFORML [100] やめる
+$INPUT_LOOP_COM461
+INPUT
+IF RESULT == 1
+	CALL COM461_DOOR
+ELSEIF RESULT == 2
+	CALL COM461_BOOKSHELF
+ELSEIF RESULT == 3
+	CALL COM461_WOOD
+ELSEIF RESULT == 4
+	CALL COM461_CENTER
+ELSEIF RESULT == 5
+	CALL COM461_CHEST
+ELSEIF RESULT == 6
+	CALL COM461_BED
+ELSEIF RESULT == 7
+	CALL COM461_WINDOW
+ELSEIF RESULT == 100
+	RETURN 0
+ELSE
+	GOTO INPUT_LOOP_COM461
+ENDIF
+SIF CFLAG:MASTER:現在位置 != 900
+	RETURN 1
+GOTO COM461_TOP
+
+@COM461_DOOR
+PRINTL 暗証番号を入れるか鍵をお使い下さい
+PRINTL 　　　　　　　　ニトリセキュリティ
+IF CFLAG:MASTER:21 > 1000
+	PRINTW 訪問者に教えてもらった隠し鍵を使った
+	PRINTFORMW %CALLNAME:MASTER%は紅魔館に戻る旨を書き置きし、紅魔館へと戻った
+	CFLAG:MASTER:現在位置 = 1
+	FLAG:22 = 0
+	FLAG:23 = 0
+	FLAG:24 = 0
+	FLAG:25 = 0
+ELSE
+	INPUT
+	IF RESULT == 0461
+		PRINTL 扉が開いた！
+		IF CFLAG:MASTER:22 > 1
+			PRINTFORMW %CALLNAME:MASTER%は訪問者に見つかる前に紅魔館へと戻った
+			CFLAG:MASTER:現在位置 = 1
+			FLAG:22 = 0
+			FLAG:23 = 0
+			FLAG:24 = 0
+			FLAG:25 = 0
+		ELSE
+			PRINTFORMW しかし、脱走する前に訪問者に見つかってしまった
+			CFLAG:MASTER:22 = 0
+			FLAG:21 = 900
+			FLAG:31 = 0
+			TRYCALL COM461_PUNISHMENT(1)
+		ENDIF
+	ELSE
+		PRINTW 暗証番号が違います
+	ENDIF
+ENDIF
+TIME += 10
+RETURN 0
+
+@COM461_BOOKSHELF
+PRINTW 様々な本が置いてある
+PRINTL [スキンシップ教本] [触手の飼い方]
+PRINTL [あなたが教えるＶとＡ] [調教大全]
+PRINTL [道具のアレコレ] [好かれる調教３]
+PRINTW [清く正しい盗撮の仕方] [毎日覗き]
+PRINTW 見なかった事にした
+TIME += 10
+RETURN 0
+
+@COM461_WOOD
+PRINTW 何の変哲もないただの観葉植物だ
+TIME += 10
+RETURN 0
+
+@COM461_CENTER
+PRINTW 特に何も無い
+PRINTW 天井のシミが人の顔に見えるような気がする以外何も無い
+TIME += 10
+RETURN 0
+
+@COM461_CHEST
+PRINTW 思った以上に服が詰め込まれている
+PRINTW しかし、ほとんどがコスプレ衣装のようだ
+TIME += 10
+RETURN 0
+
+@COM461_BED
+PRINTW シーツが汚れている以外は普通のベッドだ
+IF ABL:MASTER:教養 > 0
+	PRINTFORML [0] 特に気になるものはない
+	PRINTFORML [1] やっぱりベッド下は気になる
+	$INPUT_LOOP_COM461_BED
+	INPUT
+	IF RESULT == 1
+		PRINTW ベッド下を調べてみたが、エロ本は無いようだ
+		IF ABL:MASTER:教養 * 20 > RAND:100
+			PRINTW ベッドの裏側にメモが貼り付けてあった！
+			PRINTL 
+			PRINTL 忘れないように暗証番号をある場所にメモしておいた
+			PRINTL どこにメモしたか忘れたら洒落にならない
+			PRINTW 
+		ENDIF
+	ELSEIF RESULT == 0
+		CFLAG:MASTER:22 -= 1
+		RETURN 0
+	ELSE
+		GOTO INPUT_LOOP_COM461_BED
+	ENDIF
+ENDIF
+TIME += 10
+RETURN 0
+
+@COM461_WINDOW
+PRINTW はめ殺しではあるものの普通のガラス窓だ
+IF CFLAG:MASTER:21 < 1000
+	PRINTFORML [0] 割ってでも外に出る
+	PRINTFORML [1] 何もしない
+	$INPUT_LOOP_COM461_WINDOW
+	INPUT
+	IF RESULT == 0
+		IF ABL:MASTER:戦闘能力 > 1
+			PRINTFORMW %CALLNAME:MASTER%が弾を窓に当てると激しい音を立てながら窓が割れた！
+			IF CFLAG:MASTER:22 > 1
+				PRINTFORMW %CALLNAME:MASTER%は訪問者に見つかる前に紅魔館へと戻った
+				CFLAG:MASTER:現在位置 = 1
+				FLAG:22 = 0
+				FLAG:23 = 0
+				FLAG:24 = 0
+				FLAG:25 = 0
+			ELSE
+				PRINTFORMW しかし、脱走する前に訪問者に見つかってしまった
+				CFLAG:MASTER:22 = 0
+				FLAG:21 = 900
+				FLAG:31 = 0
+				TRYCALL COM461_PUNISHMENT(2)
+			ENDIF
+		ELSE
+			PRINTFORMW しかし、%CALLNAME:MASTER%の戦闘能力では窓は割れないようだ…
+		ENDIF
+	ELSEIF RESULT == 1
+		CFLAG:MASTER:22 -= 1
+		RETURN 0
+	ELSE
+		GOTO INPUT_LOOP_COM461_WINDOW
+	ENDIF
+ENDIF
+TIME += 10
+RETURN 0
+

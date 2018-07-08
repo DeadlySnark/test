@@ -1,0 +1,252 @@
+;-------------------------------------------------
+;覗く
+;-------------------------------------------------
+@COM404
+VARSET LOCAL
+DRAWLINE
+PRINTFORML どの部屋を覗きますか？
+PRINTL [0] - やめる
+FOR LOCAL,0,MAXROOM()
+	SIF CAN_MOVE(CFLAG:MASTER:現在位置, LOCAL)
+		PRINTFORML [{LOCAL}] - %GETPLACENAME(LOCAL)%
+NEXT
+INPUT
+IF CAN_MOVE(CFLAG:MASTER:現在位置, RESULT)
+	IF CAN_MOVE(CFLAG:MASTER:現在位置, RESULT) == 1
+		PRINTFORM %CALLNAME:MASTER%は
+		IF FLAG:(300 + RESULT)
+			PRINTFORM 扉\@ HAS_DUPLICATE_KEY(RESULT) ? を合鍵でそっとあけて # の上にある採光窓から \@
+		ELSE
+			PRINT そっと扉をあけて
+		ENDIF
+		PRINTFORMW %GETPLACENAME(RESULT)%の様子をうかがった
+	ENDIF
+	;LOCAL:1 は覗いた先にいた人数
+	LOCAL:1 = 0
+	;LOCAL:2 は最初に見つけた人物
+	LOCAL:2 = 0
+	;住人と訪問者の同時位置存在時時処理
+	IF FLAG:訪問者の現在位置 != 900
+		FOR LOCAL,1,CHARANUM
+			SIF CFLAG:LOCAL:現在位置 == RESULT && FLAG:訪問者の現在位置 == RESULT
+				LOCAL:1 ++
+		NEXT
+		IF LOCAL:1 == 1
+			FOR LOCAL,1,CHARANUM
+				IF CFLAG:LOCAL:現在位置 == FLAG:訪問者の現在位置
+					PRINTFORM 【%GETPLACENAME(FLAG:訪問者の現在位置)%】で
+					IF FLAG:25 == 0
+						PRINTFORMW %NTR_NAME(0)%と%CALLNAME:LOCAL%が話をしていた
+					ELSEIF FLAG:25 == 1
+						PRINTFORMW %NTR_NAME(0)%と%CALLNAME:LOCAL%がキスをしていた
+					ELSEIF FLAG:25 == 2
+						PRINTFORMW %NTR_NAME(0)%が%CALLNAME:LOCAL%の体を丹念に愛撫していた
+					ELSEIF FLAG:25 == 3
+						PRINTFORMW %NTR_NAME(0)%が%CALLNAME:LOCAL%の胸を優しく撫でていた
+					ELSEIF FLAG:25 == 4
+						PRINTFORMW %CALLNAME:LOCAL%が%NTR_NAME(0)%のペニスを咥えていた
+					ELSEIF FLAG:25 == 5
+						PRINTFORMW %NTR_NAME(0)%と%CALLNAME:LOCAL%がお互いの性器を舐めあっていた
+					ELSEIF FLAG:25 == 6
+						PRINTFORMW %CALLNAME:LOCAL%が%NTR_NAME(0)%に素股をしていた
+					ELSEIF 7 <= FLAG:25 && FLAG:25 <= 13
+						PRINTFORMW %NTR_NAME(0)%と%CALLNAME:LOCAL%がまぐわっていた
+					ELSEIF 14 <= FLAG:25 && FLAG:25 <= 20
+						PRINTFORMW %NTR_NAME(0)%と%CALLNAME:LOCAL%がアナルセックスをしていた
+					ELSE
+						PRINTW バグです
+					ENDIF
+					;覗きバレ時見せつけ
+					SIF RAND:2
+						CALL NTR_SHOW_PEEP(LOCAL)
+				ENDIF
+			NEXT
+			TIME += 3
+			RETURN 1
+		ENDIF
+		LOCAL:1 = 0
+	ENDIF
+	PRINTFORM %GETPLACENAME(RESULT)%には
+	FOR LOCAL,1,CHARANUM
+		IF CFLAG:LOCAL:現在位置 == RESULT
+			SIF LOCAL:1
+				PRINT と
+			PRINTFORM %CALLNAME:LOCAL%
+			SIF !LOCAL:1
+				LOCAL:2 = LOCAL
+			LOCAL:1 ++
+		ENDIF
+	NEXT
+	IF FLAG:侵入者の現在位置 == RESULT
+		SIF LOCAL:1
+			PRINT と
+		PRINTFORM 魔理沙
+		LOCAL:1 ++
+	ENDIF
+	IF FLAG:訪問者の現在位置 == RESULT
+		SIF LOCAL:1
+			PRINT と
+		PRINTFORM %NTR_NAME(0)%
+		LOCAL:1 ++
+	ENDIF
+	IF LOCAL:1
+		IF BATHROOM(RESULT)
+			PRINTL がいる
+			SOURCE:PLAYER:欲情 = 10
+		ELSE
+			PRINTL がいる。
+		ENDIF
+		;住人一人しかいないとき場所によってはパンチラのチャンス
+		IF LOCAL:1 == 1 && LOCAL:2
+			;中央廊下から庭を見たとき1/3でパンチラ
+			IF CFLAG:MASTER:現在位置 == 3 && RESULT == 16 && !RAND:3
+				CALL LOOK_PANCHIRA(LOCAL:2, MASTER, RESULT, 1)
+			ENDIF
+			;正門と家から街道見た時1/4でパンチラ
+			IF CFLAG:MASTER:現在位置 == 1 ||CFLAG:MASTER:現在位置 == 21 ||CFLAG:MASTER:現在位置 == 22 ||CFLAG:MASTER:現在位置 == 23 ||CFLAG:MASTER:現在位置 == 24 ||CFLAG:MASTER:現在位置 == 25
+			  IF RESULT == 20 && !RAND:4 
+					CALL LOOK_PANCHIRA(LOCAL:2, MASTER, RESULT, 1)
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		PRINTL 誰もいなかった。
+	ENDIF
+	WAIT
+ELSE
+	RETURN 0
+ENDIF
+TIME += 3
+RETURN 1
+
+;パンチラ処理
+;ARG…見られた人
+;ARG:1…見た人(998:訪問者, 997:魔理沙)
+;ARG:2…場所
+;ARG:3…0:踊り場、二階廊下 1:庭、湖
+@LOOK_PANCHIRA(ARG, ARG:1, ARG:2, ARG:3)
+;庭 or 湖
+IF ARG:3 == 1
+	;見た人がMASTER
+	IF ARG != MASTER && ARG:1 == MASTER
+		PRINTFORML %GETPLACENAME(ARG:2)%には%CALLNAME:ARG%がいたが、悪戯な風が吹いたため
+		IF EQUIP:ARG:下半身下着１
+			PRINTFORM %PANTS_DESCRIPTION(EQUIP:ARG:下半身下着１)%%PANTSNAME(EQUIP:ARG:下半身下着１)%
+		ELSEIF !EQUIP:ARG:下半身下着２
+			PRINTFORM スカートの中の何も着ていない下半身
+			SOURCE:PLAYER:欲情 = 10
+		ELSE
+			PRINTFORM %PANTS_DESCRIPTION(EQUIP:ARG:下半身下着２)%%PANTSNAME(EQUIP:ARG:下半身下着２)%
+		ENDIF
+		PRINTFORML が見えてしまった。
+	;見られた人がMASTER
+	ELSEIF ARG == MASTER && ARG:1 != MASTER
+	;その他の組み合わせは現在未対応
+		PRINTFORML 悪戯な風が吹いたためスカートがめくれあがってしまい、
+		PRINTFORM  たまたま%GETPLACENAME(ARG:2)%を見ることのできる場所場所にいた
+		SELECTCASE ARG:1
+			;魔理沙
+			CASE 997
+				PRINTFORML 魔理沙に
+			;訪問者
+			CASE 998
+				PRINTFORML %NTR_NAME(0)%に
+			;他
+			CASEELSE
+				PRINTFORML %CALLNAME:(ARG:1)%に
+		ENDSELECT
+		IF EQUIP:ARG:下半身下着１
+			PRINTFORM %PANTS_DESCRIPTION(EQUIP:ARG:下半身下着１)%%PANTSNAME(EQUIP:ARG:下半身下着１)%
+		ELSEIF !EQUIP:ARG:下半身下着２
+			PRINTFORM スカートの中の何も着ていない下半身
+			IF ARG:1 <= CHARANUM
+				SOURCE:(ARG:1):欲情 = 10
+			ENDIF
+		ELSE
+			PRINTFORM %PANTS_DESCRIPTION(EQUIP:ARG:下半身下着２)%%PANTSNAME(EQUIP:ARG:下半身下着２)%
+		ENDIF
+		PRINTFORML を見られてしまった。
+	ELSE
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;逆パンチラ
+;パンチラ可能な場所でMASTERが掃除したとき、見ることができる場所にいる誰かに見られてしまう。
+@REV_PANCHIRA
+;そもそもスカートをはいてない場合見れない
+SIF !EQUIP:MASTER:スカート
+	RETURN 0
+;ロングスカートの場合見える可能性減
+SIF EQUIP:MASTER:スカート == 3 && RAND:2
+	RETURN 0
+;裳の場合見えない
+SIF EQUIP:MASTER:スカート == 5
+	RETURN 0
+;パンチラ不可能な場所の場合処理しない（庭、以外）
+SELECTCASE CFLAG:MASTER:現在位置
+	;庭
+	CASE 16
+	;湖
+	CASE 20
+	;パンチラ不可
+	CASEELSE
+		RETURN 0
+ENDSELECT
+;MASTER以外に誰かいたら見られない
+SIF GET_N_IN_ROOM(CFLAG:MASTER:現在位置, 0, 1, 1)
+	RETURN 0
+;LOCAL:1 … 0:パンチラを見られていない 1:パンチラを見られた
+;誰か一人に見られたら処理終了
+;全住人についてチェック
+FOR LOCAL,1,CHARANUM
+	;パンチラを覗くことのできる場所にいるかチェック
+	LOCAL:2 = CHK_LOOK_PANCHIRA(CFLAG:MASTER:現在位置, CFLAG:LOCAL:現在位置)
+	IF LOCAL:2 != -1 && RAND:2
+		CALL LOOK_PANCHIRA(MASTER, LOCAL, CFLAG:MASTER:現在位置, LOCAL:2)
+		LOCAL:1 = 1
+	ENDIF
+	SIF LOCAL:1
+		BREAK
+NEXT
+;訪問者チェック
+IF LOCAL:1 == 0
+	;パンチラを覗くことのできる場所にいるかチェック
+	LOCAL:2 = CHK_LOOK_PANCHIRA(CFLAG:MASTER:現在位置, FLAG:訪問者の現在位置)
+	IF LOCAL:2 != -1 && RAND:2
+		CALL LOOK_PANCHIRA(MASTER, 998, CFLAG:MASTER:現在位置, LOCAL:2)
+		LOCAL:1 = 1
+	ENDIF
+ENDIF
+;魔理沙チェック
+IF LOCAL:1 == 0
+	;パンチラを覗くことのできる場所にいるかチェック
+	LOCAL:2 = CHK_LOOK_PANCHIRA(CFLAG:MASTER:現在位置, FLAG:侵入者の現在位置)
+	IF LOCAL:2 != -1 && RAND:2
+		CALL LOOK_PANCHIRA(MASTER, 997, CFLAG:MASTER:現在位置, LOCAL:2)
+		LOCAL:1 = 1
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;パンチラを覗くことのできる場所にいるかチェック
+;ARG … 覗かれる人のいる場所
+;ARG:1 … 覗く人のいる場所
+;戻り値 … -1:覗けない  1:覗ける(庭、街道）
+@CHK_LOOK_PANCHIRA(ARG, ARG:1)
+#FUNCTION
+SELECTCASE ARG
+	;庭
+	CASE 16
+		;中央廊下
+		SIF ARG:1 == 3
+			RETURNF 1
+	;湖
+	CASE 20
+		;街道に面した場所から街道を見たとき1/3でパンチラ
+		SIF ARG:1 == 1 || ARG:1 == 21 || ARG:1 == 22 || ARG:1 == 23 || ARG:1 == 24 || ARG:1 == 25
+			RETURNF 1
+ENDSELECT
+RETURNF -1
